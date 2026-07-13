@@ -1,0 +1,25 @@
+# Dependencies and builds
+node_modules/
+dist/
+coverage/
+.vite/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Runtime content
+server/uploads/*
+!server/uploads/.gitkeep
+*.log
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Test and cache files
+.eslintcache
+*.tsbuildinfo

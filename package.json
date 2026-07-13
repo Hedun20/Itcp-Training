@@ -1,0 +1,27 @@
+{
+  "name": "itcp-training",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-ready training platform for ITCP Europe.",
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently --kill-others-on-fail --names client,server --prefix-colors magenta,cyan \"npm:dev:client\" \"npm:dev:server\"",
+    "dev:client": "npm run dev --workspace @itcp/client",
+    "dev:server": "npm run dev --workspace @itcp/server",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "seed": "npm run seed --workspace @itcp/server",
+    "seed:admin": "npm run seed:admin --workspace @itcp/server"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
