@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Digital capability foundations</title><desc id="desc">Abstract magenta and violet learning pathways on a charcoal field.</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#080a0f"/><stop offset="1" stop-color="#171022"/></linearGradient><linearGradient id="hot" x2="1" y2="1"><stop stop-color="#ff1493"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="18"/></filter></defs>
+  <rect width="1200" height="675" rx="42" fill="url(#bg)"/><circle cx="990" cy="95" r="250" fill="#8b5cf6" opacity=".13"/><circle cx="170" cy="610" r="290" fill="#ff1493" opacity=".11"/>
+  <g fill="none" stroke="#ffffff" opacity=".08"><path d="M0 120h1200M0 240h1200M0 360h1200M0 480h1200M0 600h1200"/><path d="M120 0v675M300 0v675M480 0v675M660 0v675M840 0v675M1020 0v675"/></g>
+  <path d="M180 470C330 235 485 525 640 292S920 248 1040 150" fill="none" stroke="#ff1493" stroke-width="32" opacity=".22" filter="url(#glow)"/><path d="M180 470C330 235 485 525 640 292S920 248 1040 150" fill="none" stroke="url(#hot)" stroke-width="8"/>
+  <g fill="#080a0f" stroke="#ff65bd" stroke-width="7"><circle cx="180" cy="470" r="22"/><circle cx="410" cy="365" r="22"/><circle cx="640" cy="292" r="22"/><circle cx="840" cy="255" r="22"/><circle cx="1040" cy="150" r="22"/></g>
+  <g fill="#f7f8fb"><text x="92" y="112" font-family="Inter,Segoe UI,sans-serif" font-size="26" font-weight="800" letter-spacing="5">ITCP TRAINING</text><text x="92" y="174" font-family="Inter,Segoe UI,sans-serif" font-size="48" font-weight="850">Capability, connected.</text></g>
+</svg>

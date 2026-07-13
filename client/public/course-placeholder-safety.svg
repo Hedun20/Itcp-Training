@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Health and safety visual</title><desc id="desc">A protective green shield surrounded by calm information rings.</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#050807"/><stop offset="1" stop-color="#101b19"/></linearGradient><linearGradient id="shield" x2="1" y2="1"><stop stop-color="#6ee7a8"/><stop offset="1" stop-color="#22d3ee"/></linearGradient><filter id="g"><feGaussianBlur stdDeviation="24"/></filter></defs>
+  <rect width="1200" height="675" rx="42" fill="url(#bg)"/><circle cx="600" cy="340" r="270" fill="none" stroke="#6ee7a8" stroke-opacity=".1"/><circle cx="600" cy="340" r="210" fill="none" stroke="#22d3ee" stroke-opacity=".14" stroke-dasharray="8 18"/><circle cx="600" cy="340" r="150" fill="#6ee7a8" opacity=".1" filter="url(#g)"/>
+  <path d="M600 150c74 54 138 65 190 70v137c0 94-67 167-190 214-123-47-190-120-190-214V220c52-5 116-16 190-70Z" fill="#101c1a" stroke="url(#shield)" stroke-width="9"/>
+  <path d="m518 351 57 57 113-137" fill="none" stroke="url(#shield)" stroke-width="23" stroke-linecap="round" stroke-linejoin="round"/>
+  <g fill="#6ee7a8"><circle cx="250" cy="244" r="8"/><circle cx="924" cy="260" r="8"/><circle cx="292" cy="485" r="8"/><circle cx="925" cy="472" r="8"/></g><g stroke="#6ee7a8" stroke-opacity=".24"><path d="M258 244h150M790 260h126M300 485h120M780 472h137"/></g>
+  <text x="70" y="92" fill="#f7f8fb" font-family="Inter,Segoe UI,sans-serif" font-size="26" font-weight="800" letter-spacing="5">SAFE WORK, CLEAR CHOICES</text>
+</svg>

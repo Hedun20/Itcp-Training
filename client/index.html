@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#050507" />
+    <meta name="description" content="ITCP Europe learning and professional training platform." />
+    <link rel="icon" type="image/png" href="/src/branding/assets/itcp-logo.png" />
+    <title>ITCP Training</title>
+    <script>
+      (() => {
+        const key = 'itcp-branding-theme';
+        let saved = null;
+        try { saved = localStorage.getItem(key); } catch { /* Storage can be blocked by browser policy. */ }
+        const theme = saved === 'dark' || saved === 'light'
+          ? saved
+          : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
