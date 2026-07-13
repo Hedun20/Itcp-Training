@@ -2,7 +2,10 @@ import { model, Schema, type HydratedDocument, type Model, type Types } from 'mo
 
 export interface IAttemptAnswer {
   questionId: Types.ObjectId;
+  questionText: string;
   selectedOptionIndex: number;
+  correctOptionIndex: number;
+  explanation?: string;
   pointsAwarded: number;
 }
 
@@ -26,7 +29,10 @@ export type AssessmentAttemptDocument = HydratedDocument<IAssessmentAttempt>;
 const attemptAnswerSchema = new Schema<IAttemptAnswer>(
   {
     questionId: { type: Schema.Types.ObjectId, required: true },
+    questionText: { type: String, required: true, maxlength: 5_000 },
     selectedOptionIndex: { type: Number, min: -1, required: true },
+    correctOptionIndex: { type: Number, min: 0, required: true },
+    explanation: { type: String, maxlength: 5_000 },
     pointsAwarded: { type: Number, min: 0, required: true },
   },
   { _id: false, versionKey: false },

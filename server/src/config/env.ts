@@ -6,11 +6,17 @@ const serverRoot = path.resolve(__dirname, '../..');
 // npm workspace scripts run with the package as cwd; load the repository-level env deliberately.
 dotenv.config({ path: path.resolve(serverRoot, '../.env'), quiet: true });
 
-const booleanFromString = z.preprocess((value) => {
+function parseBoolean(value: unknown): unknown {
+  if (value === undefined || value === null || value === '') return undefined;
   if (typeof value === 'boolean') return value;
   if (typeof value !== 'string') return value;
-  return value.toLowerCase() === 'true';
-}, z.boolean());
+  if (value.toLowerCase() === 'true') return true;
+  if (value.toLowerCase() === 'false') return false;
+  return value;
+}
+
+const optionalBooleanFromString = z.preprocess(parseBoolean, z.boolean().optional());
+const booleanFromString = z.preprocess(parseBoolean, z.boolean().default(false));
 
 const optionalNonEmptyString = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
@@ -33,10 +39,11 @@ const envSchema = z
     REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().min(1).max(90).default(7),
     REFRESH_COOKIE_NAME: z.string().min(1).default('itcp_refresh'),
     COOKIE_DOMAIN: z.string().optional(),
-    COOKIE_SECURE: booleanFromString.optional(),
+    COOKIE_SECURE: optionalBooleanFromString,
     TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
     UPLOAD_MAX_BYTES: z.coerce.number().int().min(1_024).max(25 * 1024 * 1024).default(5 * 1024 * 1024),
     UPLOADS_DIRECTORY: z.string().min(1).default('uploads'),
+    SEED_UPDATE_EXISTING: booleanFromString,
     GOOGLE_CLIENT_ID: optionalNonEmptyString,
     GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
     GOOGLE_CALLBACK_URL: optionalUrl,
@@ -58,6 +65,13 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['JWT_REFRESH_SECRET'],
         message: 'JWT refresh and access secrets must be different',
+      });
+    }
+    if (env.NODE_ENV === 'production' && env.COOKIE_SECURE === false) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['COOKIE_SECURE'],
+        message: 'COOKIE_SECURE cannot be false in production',
       });
     }
     for (const key of ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET'] as const) {

@@ -5,6 +5,7 @@ import { validate } from '../middleware/validate';
 import { Course } from '../models/Course';
 import { recordAudit } from '../services/auditService';
 import { assertPublishable, courseDto, normalizeCourseIds } from '../services/courseService';
+import { sanitizeCourseProgressRecords } from '../services/progressService';
 import { AppError } from '../utils/AppError';
 import { asyncHandler } from '../utils/asyncHandler';
 import {
@@ -91,9 +92,18 @@ router.patch(
     const course = await Course.findById(request.params.id).select('+assessment.questions.correctAnswer');
     if (!course) throw new AppError(404, 'COURSE_NOT_FOUND', 'Course not found');
     if (course.status === 'archived') throw new AppError(409, 'COURSE_ARCHIVED', 'Archived courses cannot be edited');
+    const previousModuleIds = course.modules.map((module) => module._id.toString());
+    const modulesChanged = request.body.modules !== undefined;
     course.set({ ...normalizeCourseIds(request.body), updatedBy: request.auth!.userId });
     if (course.status === 'published') assertPublishable(course);
     await course.save();
+    if (modulesChanged) {
+      await sanitizeCourseProgressRecords(
+        course._id.toString(),
+        previousModuleIds,
+        course.modules.map((module) => module._id.toString()),
+      );
+    }
     await recordAudit(request, 'course.updated', 'course', course._id, { fields: Object.keys(request.body) });
     const data = courseDto(course, true);
     response.json({ data, course: data });

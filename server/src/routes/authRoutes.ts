@@ -37,7 +37,12 @@ const authLimiter = rateLimit({
 });
 
 const email = z.string().trim().email().max(254).transform(normalizeEmail);
-const password = z.string().min(10).max(128);
+const password = z
+  .string()
+  .min(10, 'Password must contain at least 10 characters')
+  .max(128, 'Password must contain at most 128 characters')
+  .regex(/[A-Za-z]/, 'Password must contain at least one letter')
+  .regex(/\d/, 'Password must contain at least one digit');
 const registrationSchema = z.object({ name: z.string().trim().min(2).max(120), email, password });
 const loginSchema = z.object({ email, password: z.string().min(1).max(128) });
 const dummyHash = '$2b$12$c9O4xELvYHhA7rC8mFz/Jea.2YnM8m42FxTqZ4QdkQ6D7HB4sYmOm';

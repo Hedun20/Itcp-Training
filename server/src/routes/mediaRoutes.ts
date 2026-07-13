@@ -6,6 +6,7 @@ import { getEnv } from '../config/env';
 import { authenticate, requireRole } from '../middleware/auth';
 import { hasValidImageSignature, imageUpload } from '../middleware/upload';
 import { validate } from '../middleware/validate';
+import { Course } from '../models/Course';
 import { MediaAsset } from '../models/MediaAsset';
 import { recordAudit } from '../services/auditService';
 import { AppError } from '../utils/AppError';
@@ -77,6 +78,23 @@ router.delete(
   asyncHandler(async (request, response) => {
     const asset = await MediaAsset.findById(request.params.id);
     if (!asset) throw new AppError(404, 'MEDIA_NOT_FOUND', 'Media asset not found');
+    const usedByCourses = await Course.find({
+      $or: [{ coverImage: asset.url }, { 'modules.blocks.url': asset.url }],
+    })
+      .select('code title status')
+      .limit(100)
+      .lean();
+    if (usedByCourses.length) {
+      throw new AppError(409, 'MEDIA_IN_USE', 'Media asset is referenced by one or more courses', {
+        usageCount: usedByCourses.length,
+        courses: usedByCourses.map((course) => ({
+          id: course._id.toString(),
+          code: course.code,
+          title: course.title,
+          status: course.status,
+        })),
+      });
+    }
     const uploadsRoot = path.resolve(getEnv().uploadsDirectory);
     const filePath = path.resolve(uploadsRoot, path.basename(asset.storedName));
     if (path.dirname(filePath) !== uploadsRoot) throw new AppError(400, 'UNSAFE_MEDIA_PATH', 'Stored media path is invalid');

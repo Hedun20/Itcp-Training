@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Types } from 'mongoose';
+import { getEnv } from '../config/env';
 import { LEGACY_TRAININGS } from '../data/legacyTrainings';
 import { Course } from '../models/Course';
 import { createCourseSchema } from '../validation/courseSchemas';
@@ -79,10 +80,14 @@ export function structuredSeedCourses() {
   );
 }
 
-export async function seedCourses(adminId: Types.ObjectId) {
+export async function seedCourses(adminId: Types.ObjectId, updateExisting = getEnv().SEED_UPDATE_EXISTING) {
   const courses = structuredSeedCourses();
   for (const course of courses) {
     const existing = await Course.findOne({ code: course.code }).select('publishedAt');
+    if (existing && !updateExisting) {
+      console.log(`Preserved existing ${course.code}; set SEED_UPDATE_EXISTING=true to restore canonical content`);
+      continue;
+    }
     await Course.findOneAndUpdate(
       { code: course.code },
       {
@@ -98,7 +103,7 @@ export async function seedCourses(adminId: Types.ObjectId) {
       },
       { upsert: true, runValidators: true, setDefaultsOnInsert: true },
     );
-    console.log(`Seeded ${course.code}: ${course.title}`);
+    console.log(`${existing ? 'Updated' : 'Inserted'} ${course.code}: ${course.title}`);
   }
   return courses.length;
 }

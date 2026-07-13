@@ -25,13 +25,17 @@ export async function seedAdmin() {
     });
     console.log(`Created administrator ${normalizedEmail}`);
   } else {
+    if (admin.role !== 'admin') {
+      throw new Error(
+        `Refusing to promote existing non-admin account ${normalizedEmail}; choose a different ADMIN_EMAIL or promote it through an authenticated admin workflow`,
+      );
+    }
     admin.name = env.ADMIN_NAME;
     admin.email = normalizedEmail;
-    admin.role = 'admin';
     admin.status = 'active';
-    if (!admin.passwordHash) admin.passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, 12);
+    admin.passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, 12);
     await admin.save();
-    console.log(`Administrator ${normalizedEmail} already exists; role and status verified`);
+    console.log(`Administrator ${normalizedEmail} already exists; configured credentials and status refreshed`);
   }
   return admin;
 }

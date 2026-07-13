@@ -84,7 +84,14 @@ async function submitAttempt(request: any, response: any) {
     maximumScore += question.points;
     const pointsAwarded = selectedOptionIndex === question.correctAnswer ? question.points : 0;
     score += pointsAwarded;
-    return { questionId: question._id, selectedOptionIndex, pointsAwarded };
+    return {
+      questionId: question._id,
+      questionText: question.questionText,
+      selectedOptionIndex,
+      correctOptionIndex: question.correctAnswer,
+      explanation: question.explanation,
+      pointsAwarded,
+    };
   });
 
   const rawPercentage = maximumScore === 0 ? 0 : (score / maximumScore) * 100;

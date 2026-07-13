@@ -21,6 +21,8 @@ const accessPayloadSchema = z.object({
   type: z.literal('access'),
 });
 
+const REFRESH_RACE_WINDOW_MS = 5_000;
+
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
@@ -30,6 +32,39 @@ function requestMetadata(request: Request): { ip?: string; userAgent?: string } 
     ip: request.ip,
     userAgent: request.get('user-agent')?.slice(0, 1_000),
   };
+}
+
+function isBenignRotationRace(record: any, request: Request): boolean {
+  if (!record?.revokedAt || !record.replacedByTokenId) return false;
+  const age = Date.now() - record.revokedAt.getTime();
+  if (age < 0 || age > REFRESH_RACE_WINDOW_MS) return false;
+  const metadata = requestMetadata(request);
+  return (
+    (record.revokedByIp ?? record.createdByIp ?? '') === (metadata.ip ?? '') &&
+    (record.userAgent ?? '') === (metadata.userAgent ?? '')
+  );
+}
+
+async function rejectInactiveRefresh(
+  record: any,
+  familyId: string,
+  request: Request,
+  response: Response,
+): Promise<never> {
+  if (isBenignRotationRace(record, request)) {
+    throw new AppError(
+      409,
+      'REFRESH_RACE_RETRY',
+      'This refresh token was just rotated by the same client; retry using the newest cookie',
+      { retryable: true, retryAfterMs: 100 },
+    );
+  }
+  await RefreshToken.updateMany(
+    { familyId, revokedAt: { $exists: false } },
+    { $set: { revokedAt: new Date(), revokedByIp: request.ip } },
+  );
+  clearRefreshCookie(response);
+  throw new AppError(401, 'REFRESH_TOKEN_REUSED', 'Refresh token is no longer active');
 }
 
 export function signAccessToken(user: Pick<IUser, '_id' | 'role'>): string {
@@ -124,12 +159,7 @@ export async function rotateRefreshToken(
   }).select('+tokenHash');
 
   if (!record || record.revokedAt || record.expiresAt.getTime() <= Date.now()) {
-    await RefreshToken.updateMany(
-      { familyId: payload.family, revokedAt: { $exists: false } },
-      { $set: { revokedAt: new Date(), revokedByIp: request.ip } },
-    );
-    clearRefreshCookie(response);
-    throw new AppError(401, 'REFRESH_TOKEN_REUSED', 'Refresh token is no longer active');
+    return rejectInactiveRefresh(record, payload.family, request, response);
   }
 
   const user = await User.findById(payload.sub);
@@ -155,12 +185,9 @@ export async function rotateRefreshToken(
   );
 
   if (!rotated) {
-    await RefreshToken.updateMany(
-      { familyId: payload.family, revokedAt: { $exists: false } },
-      { $set: { revokedAt: new Date(), revokedByIp: request.ip } },
-    );
-    clearRefreshCookie(response);
-    throw new AppError(401, 'REFRESH_TOKEN_REUSED', 'Concurrent refresh detected; sign in again');
+    await RefreshToken.deleteOne({ _id: replacement.recordId, revokedAt: { $exists: false } });
+    const latestRecord = await RefreshToken.findById(record._id).select('+tokenHash');
+    return rejectInactiveRefresh(latestRecord, payload.family, request, response);
   }
 
   setRefreshCookie(response, replacement.rawToken, replacement.expiresAt);

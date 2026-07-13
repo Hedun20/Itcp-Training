@@ -6,6 +6,12 @@ import { normalizeEmail } from '../utils/email';
 
 let configured = false;
 
+export function verifiedGoogleEmail(profile: Pick<Profile, 'emails'>): string {
+  const email = profile.emails?.find((candidate) => candidate.verified === true)?.value;
+  if (!email) throw new Error('Google profile did not provide a verified email address');
+  return email;
+}
+
 export function configurePassport(): boolean {
   const env = getEnv();
   if (!env.googleEnabled || configured) return env.googleEnabled;
@@ -19,8 +25,7 @@ export function configurePassport(): boolean {
       },
       async (_accessToken: string, _refreshToken: string, profile: Profile, done) => {
         try {
-          const email = profile.emails?.find((candidate) => candidate.verified)?.value ?? profile.emails?.[0]?.value;
-          if (!email) return done(new Error('Google profile did not provide an email address'));
+          const email = verifiedGoogleEmail(profile);
           const normalizedEmail = normalizeEmail(email);
           let user = await User.findOne({ $or: [{ googleId: profile.id }, { normalizedEmail }] });
           if (user) {
