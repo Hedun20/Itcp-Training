@@ -13,7 +13,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed": "tsx src/seeds/index.ts",
-    "seed:admin": "tsx src/seeds/admin.ts"
+    "seed:admin": "tsx src/seeds/admin.ts",
+    "seed:repair-content": "tsx src/seeds/repairContent.ts",
+    "content:verify": "tsx src/scripts/verifyTrainingContent.ts",
+    "content:verify-source": "tsx src/scripts/verifyOriginalTrainingSource.ts"
   },
   "engines": {
     "node": ">=20.0.0"

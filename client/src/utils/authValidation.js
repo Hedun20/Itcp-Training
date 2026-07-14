@@ -1,4 +1,6 @@
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const INSTRUCTOR_CODE_PATTERN = /^\d{6}$/;
+const REGISTRATION_ROLES = new Set(['learner', 'instructor']);
 
 export function passwordValidationMessage(password) {
   if (!password) return 'Password is required.';
@@ -13,6 +15,10 @@ export function validateRegistrationForm(form) {
   const name = form.name?.trim() || '';
   const email = form.email?.trim() || '';
 
+  if (!REGISTRATION_ROLES.has(form.role)) {
+    errors.role = 'Choose learner or instructor.';
+  }
+
   if (!name) errors.name = 'Full name is required.';
   else if (name.length < 2) errors.name = 'Full name must contain at least 2 characters.';
   else if (name.length > 120) errors.name = 'Full name must contain at most 120 characters.';
@@ -24,6 +30,9 @@ export function validateRegistrationForm(form) {
   if (passwordError) errors.password = passwordError;
   if (!form.confirmPassword) errors.confirmPassword = 'Confirm your password.';
   else if (form.password !== form.confirmPassword) errors.confirmPassword = 'Passwords do not match.';
+  if (form.role === 'instructor' && !INSTRUCTOR_CODE_PATTERN.test(form.instructorCode || '')) {
+    errors.instructorCode = 'Enter the six-digit instructor access code.';
+  }
   if (!form.authorization) errors.authorization = 'Confirm that you are authorised to create this account.';
 
   return errors;

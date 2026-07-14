@@ -28,6 +28,7 @@ async function resolveCourse(identifier: string, isAdmin: boolean) {
 
 router.get(
   ['/me', '/'],
+  requireRole('admin', 'learner'),
   asyncHandler(async (request, response) => {
     const progress = await CourseProgress.find({ userId: request.auth!.userId })
       .populate('courseId', 'code slug title coverImage estimatedDuration modules._id')
@@ -64,6 +65,7 @@ router.get(
 
 router.get(
   '/:courseId',
+  requireRole('admin', 'learner'),
   validate({ params: courseParams }),
   asyncHandler(async (request, response) => {
     const course = await resolveCourse(request.params.courseId as string, request.auth!.role === 'admin');
@@ -115,7 +117,7 @@ async function saveProgress(request: any, response: any) {
   response.json({ data, progress: data });
 }
 
-router.put('/:courseId', validate({ params: courseParams, body: updateProgress }), asyncHandler(saveProgress));
-router.post('/:courseId', validate({ params: courseParams, body: updateProgress }), asyncHandler(saveProgress));
+router.put('/:courseId', requireRole('admin', 'learner'), validate({ params: courseParams, body: updateProgress }), asyncHandler(saveProgress));
+router.post('/:courseId', requireRole('admin', 'learner'), validate({ params: courseParams, body: updateProgress }), asyncHandler(saveProgress));
 
 export { router as progressRoutes };

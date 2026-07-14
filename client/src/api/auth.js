@@ -29,6 +29,9 @@ export const authApi = {
     const payload = await api.get('/auth/google/callback', { query, skipRefresh: true });
     return authResult(payload);
   },
+  async completeGoogleRegistration(details) {
+    return authResult(await api.post('/auth/google/complete-registration', details, { skipRefresh: true }));
+  },
   async updateProfile(update) {
     const payload = await api.patch('/users/me', update);
     return payload?.user || payload;

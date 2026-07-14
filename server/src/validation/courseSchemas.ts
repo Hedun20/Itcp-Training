@@ -29,6 +29,7 @@ const imageBlock = optionalId.extend({
   altText: z.string().trim().max(500),
   caption: z.string().trim().max(1_000).optional(),
   credit: z.string().trim().max(500).optional(),
+  placeholder: z.boolean().default(false),
   layout: z.enum(['inline', 'medium', 'wide', 'full']).default('inline'),
 });
 const calloutBlock = optionalId.extend({

@@ -1,5 +1,5 @@
 import type { RequestHandler } from 'express';
-import { User } from '../models/User';
+import { User, type IUser } from '../models/User';
 import { verifyAccessToken } from '../services/tokenService';
 import { asyncHandler } from '../utils/asyncHandler';
 import { AppError } from '../utils/AppError';
@@ -20,7 +20,7 @@ export const authenticate = asyncHandler(async (request, _response, next) => {
   next();
 });
 
-export function requireRole(...roles: Array<'admin' | 'learner'>): RequestHandler {
+export function requireRole(...roles: IUser['role'][]): RequestHandler {
   return (request, _response, next) => {
     if (!request.auth) return next(new AppError(401, 'AUTHENTICATION_REQUIRED', 'Authentication is required'));
     if (!roles.includes(request.auth.role)) {

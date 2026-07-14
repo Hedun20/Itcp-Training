@@ -17,7 +17,7 @@ const refreshPayloadSchema = z.object({
 
 const accessPayloadSchema = z.object({
   sub: z.string(),
-  role: z.enum(['admin', 'learner']),
+  role: z.enum(['admin', 'instructor', 'learner']),
   type: z.literal('access'),
 });
 

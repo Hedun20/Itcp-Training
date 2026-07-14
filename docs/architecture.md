@@ -21,11 +21,11 @@ The npm workspace keeps deployable applications separate:
 
 ## Trust boundaries
 
-The browser is never trusted to set a role, score, pass result, publication state, or another learner's identifier. Learner course responses omit correct answers. Assessment submissions carry only selected answers; the API loads the current assessment, calculates the score, stores the immutable attempt, and updates derived progress.
+The browser is never trusted to set an administrator role, validate an instructor code, claim course ownership, set a score/pass result, change publication state, or supply another learner's identity. Public role input is constrained to learner/instructor, and instructor authorization is re-established from `Course.createdBy` on every protected operation. Learner course responses omit correct answers. Assessment submissions carry only selected answers; the API loads the current assessment, calculates the score, stores the immutable attempt, and updates derived progress.
 
 Short-lived access tokens are returned to the client and held only in JavaScript memory. Long-lived refresh credentials are signed JWTs in an HTTP-only cookie. The database holds only a one-way token digest and revocation metadata. Refreshing rotates the token and revokes the prior record; logout revokes the active record and clears the cookie.
 
-Admin authorization is enforced in server middleware and is not dependent on whether the client hides a navigation item.
+Admin and instructor authorization are enforced in server middleware and are not dependent on whether the client hides a navigation item. Admin-only routes remain under `/admin`; instructor progress/result routes first resolve the instructor's owned course identifiers and scope every query to them.
 
 ## Core data relationships
 
@@ -51,4 +51,4 @@ Generated uploads are ignored by Git. Only the empty directory marker and intent
 
 Startup validates the environment before opening the HTTP listener. The process handles MongoDB connection failure explicitly and shuts down cleanly on termination signals. Requests receive an identifier, and centralized error middleware converts operational and validation failures to the shared JSON error shape.
 
-The client uses route-level shells for auth, learner, and admin contexts. A single theme provider applies `data-theme` to the document root and persists the `itcp-branding-theme` preference. UI state components and accessible focus behavior are shared rather than reimplemented page by page.
+The client uses route-level shells for auth, learner, instructor, and admin contexts. A first-time Google identity finishes role selection in the auth context before any role shell becomes available. A single theme provider applies `data-theme` to the document root and persists the `itcp-branding-theme` preference. UI state components and accessible focus behavior are shared rather than reimplemented page by page.

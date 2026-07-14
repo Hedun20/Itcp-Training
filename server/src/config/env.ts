@@ -44,12 +44,21 @@ const envSchema = z
     UPLOAD_MAX_BYTES: z.coerce.number().int().min(1_024).max(25 * 1024 * 1024).default(5 * 1024 * 1024),
     UPLOADS_DIRECTORY: z.string().min(1).default('uploads'),
     SEED_UPDATE_EXISTING: booleanFromString,
+    INSTRUCTOR_REGISTRATION_ENABLED: booleanFromString,
+    INSTRUCTOR_REGISTRATION_CODE: z.preprocess(
+      (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+      z.string().regex(/^\d{6}$/, 'INSTRUCTOR_REGISTRATION_CODE must contain exactly six digits').optional(),
+    ),
+    INSTRUCTOR_CODE_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(100).default(5),
+    INSTRUCTOR_CODE_WINDOW_MINUTES: z.coerce.number().int().min(1).max(1_440).default(30),
     GOOGLE_CLIENT_ID: optionalNonEmptyString,
     GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
     GOOGLE_CALLBACK_URL: optionalUrl,
     ADMIN_NAME: z.string().min(2).optional(),
     ADMIN_EMAIL: z.string().email().optional(),
-    ADMIN_PASSWORD: z.string().min(12).optional(),
+    // Seed-only credential. Strength is enforced by seedAdmin so stale seed values
+    // never prevent the long-running API or non-credential content repair from starting.
+    ADMIN_PASSWORD: z.string().optional(),
   })
   .superRefine((env, context) => {
     const credentialsSupplied = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET].filter(Boolean).length;

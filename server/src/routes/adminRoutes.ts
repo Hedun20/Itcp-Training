@@ -20,7 +20,7 @@ router.use(authenticate, requireRole('admin'));
 
 const idParams = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i) });
 const userUpdate = z
-  .object({ role: z.enum(['admin', 'learner']).optional(), status: z.enum(['active', 'disabled']).optional() })
+  .object({ role: z.enum(['admin', 'instructor', 'learner']).optional(), status: z.enum(['active', 'disabled']).optional() })
   .strict()
   .refine((body) => body.role !== undefined || body.status !== undefined, 'Role or status is required');
 
@@ -74,7 +74,7 @@ router.patch(
   asyncHandler(async (request, response) => {
     const user = await User.findById(request.params.id);
     if (!user) throw new AppError(404, 'USER_NOT_FOUND', 'User not found');
-    if (user._id.toString() === request.auth!.userId && (request.body.role === 'learner' || request.body.status === 'disabled')) {
+    if (user._id.toString() === request.auth!.userId && ((request.body.role && request.body.role !== 'admin') || request.body.status === 'disabled')) {
       throw new AppError(409, 'SELF_LOCKOUT_PREVENTED', 'You cannot remove your own administrator access');
     }
     const previousRole = user.role;

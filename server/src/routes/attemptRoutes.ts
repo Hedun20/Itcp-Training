@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticate } from '../middleware/auth';
+import { authenticate, requireRole } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { AssessmentAttempt } from '../models/AssessmentAttempt';
 import { Course } from '../models/Course';
@@ -10,7 +10,7 @@ import { AppError } from '../utils/AppError';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
-router.use(authenticate);
+router.use(authenticate, requireRole('admin', 'learner'));
 
 const answerSchema = z.union([
   z.number().int().min(-1),

@@ -8,6 +8,7 @@ export const AUDIT_ACTIONS = [
   'course.archived',
   'media.uploaded',
   'media.deleted',
+  'instructor.registered',
   'user.role_changed',
   'user.status_changed',
 ] as const;

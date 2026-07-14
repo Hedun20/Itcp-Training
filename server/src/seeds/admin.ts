@@ -6,7 +6,7 @@ import { normalizeEmail } from '../utils/email';
 
 export async function seedAdmin() {
   const env = getEnv();
-  if (!env.ADMIN_NAME || !env.ADMIN_EMAIL || !env.ADMIN_PASSWORD) {
+  if (!env.ADMIN_NAME || !env.ADMIN_EMAIL || !env.ADMIN_PASSWORD || env.ADMIN_PASSWORD.length < 12) {
     throw new Error('ADMIN_NAME, ADMIN_EMAIL and ADMIN_PASSWORD (at least 12 characters) are required to seed an admin');
   }
   if (/replace[-_ ]?with/i.test(env.ADMIN_PASSWORD)) {

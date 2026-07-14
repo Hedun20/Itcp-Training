@@ -5,6 +5,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { trapTabKey } from '../../utils/focus';
 import { Badge, Brand, ThemeToggle, TrainingButton } from '../components';
+import { roleHomePath } from '../../utils/roles';
 
 export function TrainingShell({ navigation, mobileOpen, setMobileOpen, roleLabel, navLabel }) {
   const { user, logout } = useAuth();
@@ -46,10 +47,10 @@ export function TrainingShell({ navigation, mobileOpen, setMobileOpen, roleLabel
       <div className="ambient-layer" aria-hidden="true"><span /><span /></div>
       <aside id="app-sidebar" className={`app-sidebar ${mobileOpen ? 'app-sidebar--open' : ''}`} aria-label={navLabel} aria-hidden={drawerClosed ? 'true' : undefined} inert={drawerClosed ? '' : undefined}>
         <div className="sidebar-brand-row">
-          <NavLink to={user?.role === 'admin' ? '/admin' : '/dashboard'}><Brand /></NavLink>
+          <NavLink to={roleHomePath(user?.role)}><Brand /></NavLink>
           <TrainingButton ref={closeButtonRef} className="mobile-only" variant="ghost" iconOnly icon={<X />} onClick={() => setMobileOpen(false)}>Close navigation</TrainingButton>
         </div>
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" aria-label={navLabel}>
           {navigation.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => isActive ? 'active' : undefined}>
               <Icon size={19} aria-hidden="true" /><span>{label}</span>

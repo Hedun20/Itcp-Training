@@ -13,6 +13,7 @@ export interface IContentBlock {
   altText?: string;
   caption?: string;
   credit?: string;
+  placeholder?: boolean;
   layout?: 'inline' | 'medium' | 'wide' | 'full';
   tone?: 'info' | 'tip' | 'success' | 'warning';
   items?: string[];
@@ -70,6 +71,7 @@ const blockSchema = new Schema<IContentBlock>(
     altText: { type: String, trim: true, maxlength: 500 },
     caption: { type: String, trim: true, maxlength: 1_000 },
     credit: { type: String, trim: true, maxlength: 500 },
+    placeholder: { type: Boolean },
     layout: { type: String, enum: ['inline', 'medium', 'wide', 'full'], default: 'inline' },
     tone: { type: String, enum: ['info', 'tip', 'success', 'warning'], default: 'info' },
     items: [{ type: String, trim: true, maxlength: 2_000 }],

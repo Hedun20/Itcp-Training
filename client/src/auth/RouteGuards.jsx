@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { LoadingState } from '../branding/components';
 import { useAuth } from './AuthContext';
+import { roleHomePath } from '../utils/roles';
 
 export function ProtectedRoute() {
   const { status } = useAuth();
@@ -13,19 +14,19 @@ export function ProtectedRoute() {
 export function RoleRoute({ roles }) {
   const { user } = useAuth();
   if (!user || !roles.includes(user.role)) {
-    return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+    return <Navigate to={roleHomePath(user?.role)} replace />;
   }
   return <Outlet />;
 }
 
 export function HomeRoute() {
   const { user } = useAuth();
-  return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  return <Navigate to={roleHomePath(user?.role)} replace />;
 }
 
 export function AnonymousRoute({ children }) {
   const { status, user } = useAuth();
   if (status === 'loading') return <main className="boot-state"><LoadingState /></main>;
-  if (status === 'authenticated') return <Navigate to={user?.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  if (status === 'authenticated') return <Navigate to={roleHomePath(user?.role)} replace />;
   return children;
 }

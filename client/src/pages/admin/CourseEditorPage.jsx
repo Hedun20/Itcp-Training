@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ArrowLeft, BookOpen, CheckCircle2, Save, Send } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { coursesApi } from '../../api/courses';
+import { useAuth } from '../../auth/AuthContext';
 import { Badge, ErrorState, LoadingState, TrainingButton, TrainingCard } from '../../branding/components';
 import { MediaPickerModal } from '../../components/MediaPickerModal';
 import { FeedbackBanner } from '../../components/FeedbackBanner';
@@ -12,6 +13,9 @@ import { CourseMetadataForm } from './CourseMetadataForm';
 import { ModuleEditor } from './ModuleEditor';
 
 export function CourseEditorPage() {
+  const { user } = useAuth();
+  const isInstructor = user?.role === 'instructor';
+  const workspaceBase = isInstructor ? '/instructor' : '/admin';
   const { courseId: routeCourseId } = useParams();
   const editing = Boolean(routeCourseId);
   const navigate = useNavigate();
@@ -56,7 +60,7 @@ export function CourseEditorPage() {
       if (publish) saved = await coursesApi.changeStatus(courseId(saved), 'published');
       setCourse(normalizeCourseForEditor(saved));
       setFeedback({ tone: 'success', message: publish ? 'Course published and visible to learners.' : 'Course changes saved.' });
-      if (!editing) navigate(`/admin/courses/${courseId(saved)}/edit`, { replace: true });
+      if (!editing) navigate(`${workspaceBase}/courses/${courseId(saved)}/edit`, { replace: true });
     } catch (error) {
       setFeedback({ tone: 'danger', message: error.message || 'Course could not be saved.' });
     } finally { setSaving(false); setPublishing(false); }
@@ -68,8 +72,8 @@ export function CourseEditorPage() {
   return (
     <div className="course-editor-page">
       <header className="editor-topbar">
-        <div><Link className="text-link back-link" to="/admin/courses"><ArrowLeft />Courses</Link><div className="editor-title-row"><div><p className="eyebrow">{editing ? 'Edit course' : 'New course'}</p><h1>{course.title || 'Untitled course'}</h1></div><Badge tone={course.status === 'published' ? 'success' : course.status === 'archived' ? 'neutral' : 'warning'}>{course.status}</Badge></div></div>
-        <div className="page-actions"><TrainingButton variant="secondary" loading={saving} icon={<Save />} onClick={() => persist()}>Save {course.status === 'draft' ? 'draft' : 'changes'}</TrainingButton><TrainingButton loading={publishing} icon={<Send />} onClick={() => persist({ publish: true })}>{course.status === 'published' ? 'Validate & update' : 'Publish course'}</TrainingButton></div>
+        <div><Link className="text-link back-link" to={`${workspaceBase}/courses`}><ArrowLeft />Courses</Link><div className="editor-title-row"><div><p className="eyebrow">{isInstructor ? 'Instructor course' : editing ? 'Edit course' : 'New course'}</p><h1>{course.title || 'Untitled course'}</h1></div><Badge tone={course.status === 'published' ? 'success' : course.status === 'archived' ? 'neutral' : 'warning'}>{course.status}</Badge></div></div>
+        <div className="page-actions"><TrainingButton variant="secondary" loading={saving} icon={<Save />} onClick={() => persist()}>Save {course.status === 'draft' ? 'draft' : 'changes'}</TrainingButton>{!isInstructor && <TrainingButton loading={publishing} icon={<Send />} onClick={() => persist({ publish: true })}>{course.status === 'published' ? 'Validate & update' : 'Publish course'}</TrainingButton>}</div>
       </header>
       {feedback && <FeedbackBanner tone={feedback.tone} onDismiss={() => setFeedback(null)}>{feedback.message}</FeedbackBanner>}
       <TrainingCard className="editor-tabs" aria-label="Course editor sections">{tabs.map((item) => <button key={item.id} type="button" aria-pressed={tab === item.id} onClick={() => setTab(item.id)}>{item.id === 'details' ? <BookOpen /> : item.id === 'content' ? <CheckCircle2 /> : <Send />}{item.label}</button>)}</TrainingCard>

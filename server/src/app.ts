@@ -14,6 +14,7 @@ import { attemptRoutes } from './routes/attemptRoutes';
 import { authRoutes } from './routes/authRoutes';
 import { courseRoutes } from './routes/courseRoutes';
 import { healthRoutes } from './routes/healthRoutes';
+import { instructorRoutes } from './routes/instructorRoutes';
 import { mediaRoutes } from './routes/mediaRoutes';
 import { progressRoutes } from './routes/progressRoutes';
 import { userRoutes } from './routes/userRoutes';
@@ -71,6 +72,7 @@ export function createApp() {
   api.use('/progress', progressRoutes);
   api.use('/attempts', attemptRoutes);
   api.use('/media', mediaRoutes);
+  api.use('/instructor', instructorRoutes);
   api.use('/admin', adminRoutes);
   app.use('/api/v1', api);
 

@@ -1,4 +1,5 @@
 import type { IUser } from '../models/User';
+import type { PendingGoogleIdentity } from '../config/passport';
 
 declare global {
   namespace Express {
@@ -10,6 +11,7 @@ declare global {
         userId: string;
         role: IUser['role'];
       };
+      googleRegistration?: PendingGoogleIdentity;
     }
   }
 }

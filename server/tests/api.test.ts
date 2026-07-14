@@ -9,6 +9,7 @@ import { getEnv } from '../src/config/env';
 import { MediaAsset } from '../src/models/MediaAsset';
 import { RefreshToken } from '../src/models/RefreshToken';
 import { User } from '../src/models/User';
+import { seedCourses } from '../src/seeds/courses';
 
 let app: Express;
 
@@ -31,7 +32,7 @@ async function register(email = 'learner@example.com') {
     name: 'Test Learner',
     email,
     password: 'SecurePass123!',
-    role: 'admin',
+    role: 'learner',
   });
   return { response, token: response.body.accessToken as string, user: response.body.user };
 }
@@ -446,6 +447,56 @@ describe('authorization and courses', () => {
       completedModuleIds: [retainedModule.id],
       status: 'in_progress',
     });
+  });
+});
+
+describe('seeded learner content', () => {
+  it('serves every original module and paragraph block through the learner course API', async () => {
+    await createAdmin('content-seed-admin@example.com');
+    const admin = await User.findOne({ normalizedEmail: 'content-seed-admin@example.com' });
+    expect(admin).toBeTruthy();
+    await seedCourses(admin!._id);
+    const learner = await register('content-reader@example.com');
+
+    const listResponse = await request(app)
+      .get('/api/v1/courses?limit=100')
+      .set('Authorization', `Bearer ${learner.token}`);
+    expect(listResponse.status).toBe(200);
+    expect(listResponse.body.courses.map((course: any) => course.code).sort()).toEqual(
+      ['ACS-01', 'DCT-01', 'DCT-02', 'HSE-01'],
+    );
+
+    const courseResponses = await Promise.all(
+      ['dc-telecom-basics', 'testing-certification', 'health-and-safety', 'access-control-infrastructure']
+        .map((slug) => request(app).get(`/api/v1/courses/${slug}`).set('Authorization', `Bearer ${learner.token}`)),
+    );
+    expect(courseResponses.every((response) => response.status === 200)).toBe(true);
+    const courses = courseResponses.map((response) => response.body.course);
+    const response = courseResponses[0]!;
+    expect(response.body.course).toMatchObject({ code: 'DCT-01', status: 'published' });
+    expect(courses.reduce((total, course) => total + course.modules.length, 0)).toBe(24);
+    expect(
+      courses.flatMap((course) => course.modules).flatMap((module: any) => module.blocks)
+        .filter((block: any) => block.type === 'paragraph'),
+    ).toHaveLength(48);
+    expect(
+      courses.every((course) => course.modules.flatMap((module: any) => module.blocks)
+        .some((block: any) => block.type === 'image' && block.placeholder === true)),
+    ).toBe(true);
+    expect(response.body.course.modules[0].blocks[0].text).toBe(
+      'A data centre is divided into functional zones so cabling stays organised and faults stay isolated. Signals enter at the Main Entrance Facility (MEF) and reach the Meet-Me Room (MMR), where carriers and tenants interconnect.',
+    );
+    expect(courses.reduce((total, course) => total + course.assessment.questions.length, 0)).toBe(40);
+    expect(courses.reduce(
+      (total, course) => total + course.assessment.questions.reduce(
+        (courseTotal: number, question: any) => courseTotal + question.options.length,
+        0,
+      ),
+      0,
+    )).toBe(160);
+    expect(courses.every((course) => course.assessment.questions.every(
+      (question: any) => question.correctAnswer === undefined,
+    ))).toBe(true);
   });
 });
 

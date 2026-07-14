@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Send } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { coursesApi } from '../../api/courses';
@@ -14,6 +14,7 @@ export function AssessmentPage() {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const submittingRef = useRef(false);
   const load = useCallback(async () => {
     try { setState({ loading: false, course: await coursesApi.get(slug), error: '' }); }
     catch (error) { setState({ loading: false, course: null, error: error.message }); }
@@ -24,11 +25,13 @@ export function AssessmentPage() {
 
   const submit = async (event) => {
     event.preventDefault();
+    if (submittingRef.current) return;
     if (unanswered) {
       setSubmitError(`Answer all ${questions.length} questions before submitting.`);
       document.querySelector('.question-card:not(:has(input:checked))')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
       return;
     }
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitError('');
     try {
@@ -36,7 +39,7 @@ export function AssessmentPage() {
       const attempt = await learningApi.submitAssessment(courseId(state.course), payload);
       navigate(`/courses/${state.course.slug || slug}/results/${attempt._id || attempt.id}`, { state: { attempt, course: state.course } });
     } catch (error) { setSubmitError(error.message || 'Your assessment could not be submitted.'); }
-    finally { setSubmitting(false); }
+    finally { submittingRef.current = false; setSubmitting(false); }
   };
 
   if (state.loading) return <LoadingState label="Preparing assessment…" />;
@@ -48,7 +51,7 @@ export function AssessmentPage() {
       <header className="assessment-header"><div><div className="badge-row"><Badge tone="accent">{state.course.code}</Badge><Badge>{questions.length} questions</Badge></div><h1>Course assessment</h1><p>Choose the best answer for every question. Your score is calculated securely after submission.</p></div><TrainingCard className="pass-mark-card"><CheckCircle2 /><span><small>Passing score</small><strong>{state.course.passMark}%</strong></span></TrainingCard></header>
       {submitError && <FeedbackBanner tone="danger">{submitError}</FeedbackBanner>}
       <form onSubmit={submit} className="question-list">
-        {questions.map((question, questionIndex) => { const key = question._id || question.id || questionIndex; return <TrainingCard as="fieldset" key={key} className="question-card"><legend><span>{questionIndex + 1}</span>{question.question || question.text}</legend>{question.points && <Badge>{question.points} point{question.points === 1 ? '' : 's'}</Badge>}<div className="option-list">{(question.options || []).map((option, optionIndex) => <label key={`${key}-${optionIndex}`} className={answers[key] === optionIndex ? 'selected' : ''}><input type="radio" name={`question-${key}`} value={optionIndex} checked={answers[key] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [key]: optionIndex }))} /><span className="option-letter">{String.fromCharCode(65 + optionIndex)}</span><span>{typeof option === 'string' ? option : option.text}</span></label>)}</div></TrainingCard>; })}
+        {questions.map((question, questionIndex) => { const key = question._id || question.id || questionIndex; return <TrainingCard as="fieldset" key={key} className="question-card"><legend><span>{questionIndex + 1}</span>{question.question || question.questionText || question.text}</legend>{question.points && <Badge>{question.points} point{question.points === 1 ? '' : 's'}</Badge>}<div className="option-list">{(question.options || []).map((option, optionIndex) => <label key={`${key}-${optionIndex}`} className={answers[key] === optionIndex ? 'selected' : ''}><input type="radio" name={`question-${key}`} value={optionIndex} checked={answers[key] === optionIndex} onChange={() => setAnswers((current) => ({ ...current, [key]: optionIndex }))} /><span className="option-letter">{String.fromCharCode(65 + optionIndex)}</span><span>{typeof option === 'string' ? option : option.text}</span></label>)}</div></TrainingCard>; })}
         <div className="assessment-submit"><span>{unanswered ? `${unanswered} unanswered` : 'All questions answered'}</span><TrainingButton type="submit" loading={submitting} icon={<Send size={18} />}>Submit assessment</TrainingButton></div>
       </form>
     </div>

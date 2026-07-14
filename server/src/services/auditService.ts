@@ -20,3 +20,19 @@ export async function recordAudit(
     ip: request.ip,
   });
 }
+
+export async function recordInstructorRegistration(
+  request: Request,
+  userId: Types.ObjectId | string,
+  method: 'password' | 'google',
+): Promise<void> {
+  await AuditLog.create({
+    actorId: userId,
+    action: 'instructor.registered',
+    targetType: 'user',
+    targetId: userId,
+    metadata: { method },
+    requestId: request.requestId,
+    ip: request.ip,
+  });
+}

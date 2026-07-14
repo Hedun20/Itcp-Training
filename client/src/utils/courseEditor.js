@@ -158,7 +158,7 @@ function prepareBlock(block) {
   if (block.type === 'paragraph') return { ...base, text: block.text };
   if (block.type === 'callout') return { ...base, title: block.title || '', text: block.text, tone: block.tone || 'info' };
   if (block.type === 'checklist') return { ...base, items: (block.items || []).map((item) => typeof item === 'string' ? item : item.text) };
-  if (block.type === 'image') return { ...base, url: block.url, altText: block.altText, caption: block.caption || '', credit: block.credit || '', layout: block.layout || 'wide' };
+  if (block.type === 'image') return { ...base, url: block.url, altText: block.altText, caption: block.caption || '', credit: block.credit || '', layout: block.layout || 'wide', placeholder: Boolean(block.placeholder) };
   return base;
 }
 

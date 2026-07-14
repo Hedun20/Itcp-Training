@@ -3,6 +3,7 @@ import { isValidObjectId } from 'mongoose';
 import { authenticate, requireRole } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { Course } from '../models/Course';
+import { MediaAsset } from '../models/MediaAsset';
 import { recordAudit } from '../services/auditService';
 import { assertPublishable, courseDto, normalizeCourseIds } from '../services/courseService';
 import { sanitizeCourseProgressRecords } from '../services/progressService';
@@ -22,13 +23,38 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+async function assertInstructorOwnsReferencedMedia(request: any): Promise<void> {
+  if (request.auth.role !== 'instructor') return;
+  const urls = new Set<string>();
+  if (request.body.coverImage?.startsWith('/uploads/')) urls.add(request.body.coverImage);
+  for (const module of request.body.modules ?? []) {
+    for (const block of module.blocks ?? []) {
+      if (block.type === 'image' && block.url?.startsWith('/uploads/')) urls.add(block.url);
+    }
+  }
+  if (!urls.size) return;
+  const ownedAssets = await MediaAsset.find({
+    uploadedBy: request.auth.userId,
+    url: { $in: [...urls] },
+  }).select('url').lean();
+  const ownedUrls = new Set(ownedAssets.map((asset) => asset.url));
+  if ([...urls].some((url) => !ownedUrls.has(url))) {
+    throw new AppError(403, 'MEDIA_OWNERSHIP_REQUIRED', 'Course images must use media that you uploaded');
+  }
+}
+
 router.get(
   '/',
   validate({ query: courseListQuerySchema }),
   asyncHandler(async (request, response) => {
     const { search, status, page, limit } = request.query as any;
-    const filter: Record<string, unknown> = request.auth!.role === 'admin' ? {} : { status: 'published' };
-    if (request.auth!.role === 'admin' && status) filter.status = status;
+    const canManage = request.auth!.role === 'admin' || request.auth!.role === 'instructor';
+    const filter: Record<string, unknown> = request.auth!.role === 'admin'
+      ? {}
+      : request.auth!.role === 'instructor'
+        ? { createdBy: request.auth!.userId }
+        : { status: 'published' };
+    if (canManage && status) filter.status = status;
     if (search) {
       const safeSearch = escapeRegExp(search);
       filter.$or = [
@@ -38,7 +64,7 @@ router.get(
       ];
     }
     const courseQuery = Course.find(filter);
-    if (request.auth!.role === 'admin') courseQuery.select('+assessment.questions.correctAnswer');
+    if (canManage) courseQuery.select('+assessment.questions.correctAnswer');
     const [courses, total] = await Promise.all([
       courseQuery
         .sort({ publishedAt: -1, createdAt: -1 })
@@ -46,7 +72,7 @@ router.get(
         .limit(limit),
       Course.countDocuments(filter),
     ]);
-    const data = courses.map((course) => courseDto(course, request.auth!.role === 'admin'));
+    const data = courses.map((course) => courseDto(course, canManage));
     response.json({ data, courses: data, pagination: { page, limit, total, pages: Math.ceil(total / limit) } });
   }),
 );
@@ -57,21 +83,27 @@ router.get(
   asyncHandler(async (request, response) => {
     const identifier = request.params.id as string;
     const selector = isValidObjectId(identifier) ? { _id: identifier } : { slug: identifier.toLowerCase() };
-    const filter = request.auth!.role === 'admin' ? selector : { ...selector, status: 'published' };
+    const canManage = request.auth!.role === 'admin' || request.auth!.role === 'instructor';
+    const filter = request.auth!.role === 'admin'
+      ? selector
+      : request.auth!.role === 'instructor'
+        ? { ...selector, createdBy: request.auth!.userId }
+        : { ...selector, status: 'published' };
     const query = Course.findOne(filter);
-    if (request.auth!.role === 'admin') query.select('+assessment.questions.correctAnswer');
+    if (canManage) query.select('+assessment.questions.correctAnswer');
     const course = await query;
     if (!course) throw new AppError(404, 'COURSE_NOT_FOUND', 'Course not found');
-    const data = courseDto(course, request.auth!.role === 'admin');
+    const data = courseDto(course, canManage);
     response.json({ data, course: data });
   }),
 );
 
 router.post(
   '/',
-  requireRole('admin'),
+  requireRole('admin', 'instructor'),
   validate({ body: createCourseSchema }),
   asyncHandler(async (request, response) => {
+    await assertInstructorOwnsReferencedMedia(request);
     const course = await Course.create({
       ...normalizeCourseIds(request.body),
       status: 'draft',
@@ -86,11 +118,18 @@ router.post(
 
 router.patch(
   '/:id',
-  requireRole('admin'),
+  requireRole('admin', 'instructor'),
   validate({ params: identifierParamsSchema, body: updateCourseSchema }),
   asyncHandler(async (request, response) => {
     const course = await Course.findById(request.params.id).select('+assessment.questions.correctAnswer');
     if (!course) throw new AppError(404, 'COURSE_NOT_FOUND', 'Course not found');
+    if (
+      request.auth!.role === 'instructor' &&
+      course.createdBy.toString() !== request.auth!.userId
+    ) {
+      throw new AppError(403, 'COURSE_OWNERSHIP_REQUIRED', 'You can edit only courses that you own');
+    }
+    await assertInstructorOwnsReferencedMedia(request);
     if (course.status === 'archived') throw new AppError(409, 'COURSE_ARCHIVED', 'Archived courses cannot be edited');
     const previousModuleIds = course.modules.map((module) => module._id.toString());
     const modulesChanged = request.body.modules !== undefined;

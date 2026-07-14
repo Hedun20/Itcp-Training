@@ -9,7 +9,7 @@ function BlockFields({ block, onChange, onChooseImage }) {
   if (block.type === 'heading') return (
     <div className="form-grid">
       <TrainingInput label="Heading text" value={block.text || ''} onChange={(event) => onChange({ ...block, text: event.target.value })} />
-      <TrainingSelect label="Heading level" value={block.level || 2} onChange={(event) => onChange({ ...block, level: Number(event.target.value) })}><option value="2">Section heading</option><option value="3">Subheading</option></TrainingSelect>
+      <TrainingSelect label="Heading level" value={block.level || 2} onChange={(event) => onChange({ ...block, level: Number(event.target.value) })}><option value="2">Section heading</option><option value="3">Subheading</option><option value="4">Detail heading</option></TrainingSelect>
     </div>
   );
   if (block.type === 'paragraph') return <TrainingInput label="Paragraph" value={block.text || ''} onChange={(event) => onChange({ ...block, text: event.target.value })} multiline rows={6} />;
@@ -23,7 +23,7 @@ function BlockFields({ block, onChange, onChooseImage }) {
   if (block.type === 'image') return (
     <>
       <div className="image-block-editor">{block.url ? <img src={resolveMediaUrl(block.url)} alt="Selected block preview" /> : <span>No image selected</span>}<TrainingButton variant="secondary" size="small" icon={<ImagePlus />} onClick={onChooseImage}>Choose from media</TrainingButton></div>
-      <TrainingInput label="Image URL" value={block.url || ''} onChange={(event) => onChange({ ...block, url: event.target.value })} placeholder="/uploads/..." />
+      <TrainingInput label="Image URL" value={block.url || ''} onChange={(event) => onChange({ ...block, url: event.target.value, placeholder: false })} placeholder="/uploads/..." hint={block.placeholder ? 'This seeded image is a neutral training visual placeholder. Replacing its URL removes the placeholder marker.' : undefined} />
       <div className="form-grid"><TrainingInput label="Alternative text" value={block.altText || ''} onChange={(event) => onChange({ ...block, altText: event.target.value })} required /><TrainingInput label="Caption" value={block.caption || ''} onChange={(event) => onChange({ ...block, caption: event.target.value })} /></div>
       <div className="form-grid"><TrainingInput label="Credit (optional)" value={block.credit || ''} onChange={(event) => onChange({ ...block, credit: event.target.value })} /><TrainingSelect label="Display size" value={block.layout || 'wide'} onChange={(event) => onChange({ ...block, layout: event.target.value })}><option value="wide">Wide</option><option value="medium">Medium</option><option value="full">Full width</option></TrainingSelect></div>
     </>
@@ -68,7 +68,7 @@ export function ModuleEditor({ modules, errors, onChange }) {
         </TrainingCard>
       ))}
       <TrainingModal open={Boolean(removeTarget)} onClose={() => setRemoveTarget(null)} title={`Remove this ${removeTarget?.type || 'item'}?`} description="This removes the item from the working course. The change takes effect when you save." footer={<><TrainingButton variant="ghost" onClick={() => setRemoveTarget(null)}>Cancel</TrainingButton><TrainingButton variant="danger" onClick={confirmRemove}>Remove</TrainingButton></>}><p>This action cannot be undone after the course is saved.</p></TrainingModal>
-      <MediaPickerModal open={Boolean(mediaTarget)} onClose={() => setMediaTarget(null)} title="Choose an image block" onSelect={(asset) => { if (!mediaTarget) return; const { moduleIndex, blockIndex } = mediaTarget; updateBlock(moduleIndex, blockIndex, { ...modules[moduleIndex].blocks[blockIndex], url: asset.url, altText: asset.altText || '' }); }} />
+      <MediaPickerModal open={Boolean(mediaTarget)} onClose={() => setMediaTarget(null)} title="Choose an image block" onSelect={(asset) => { if (!mediaTarget) return; const { moduleIndex, blockIndex } = mediaTarget; updateBlock(moduleIndex, blockIndex, { ...modules[moduleIndex].blocks[blockIndex], url: asset.url, altText: asset.altText || '', placeholder: false }); }} />
     </div>
   );
 }

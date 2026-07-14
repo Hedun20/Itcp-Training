@@ -4,6 +4,7 @@ import { validateRegistrationForm } from '../utils/authValidation';
 describe('registration validation', () => {
   it('reports every required field beside the field', () => {
     expect(validateRegistrationForm({})).toEqual({
+      role: 'Choose learner or instructor.',
       name: 'Full name is required.',
       email: 'Work email is required.',
       password: 'Password is required.',
@@ -19,6 +20,7 @@ describe('registration validation', () => {
   ])('rejects %s', (_case, password, expected) => {
     const errors = validateRegistrationForm({
       name: 'ITCP Learner',
+      role: 'learner',
       email: 'learner@example.com',
       password,
       confirmPassword: password,
@@ -30,10 +32,35 @@ describe('registration validation', () => {
   it('accepts matching credentials and authorization', () => {
     expect(validateRegistrationForm({
       name: 'ITCP Learner',
+      role: 'learner',
       email: 'learner@example.com',
       password: 'training2026',
       confirmPassword: 'training2026',
       authorization: true,
     })).toEqual({});
+  });
+
+  it('requires exactly six digits only when instructor is selected', () => {
+    const base = {
+      name: 'ITCP Instructor',
+      email: 'instructor@example.com',
+      password: 'training2026',
+      confirmPassword: 'training2026',
+      authorization: true,
+    };
+    expect(validateRegistrationForm({ ...base, role: 'learner' })).toEqual({});
+    expect(validateRegistrationForm({ ...base, role: 'instructor', instructorCode: '12345' })).toMatchObject({ instructorCode: expect.stringMatching(/six-digit/i) });
+    expect(validateRegistrationForm({ ...base, role: 'instructor', instructorCode: '123456' })).toEqual({});
+  });
+
+  it('does not accept admin as a public registration role', () => {
+    expect(validateRegistrationForm({
+      role: 'admin',
+      name: 'Public Admin',
+      email: 'admin@example.com',
+      password: 'training2026',
+      confirmPassword: 'training2026',
+      authorization: true,
+    })).toMatchObject({ role: expect.any(String) });
   });
 });

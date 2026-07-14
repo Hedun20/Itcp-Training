@@ -13,7 +13,7 @@ import { AppError } from '../utils/AppError';
 import { asyncHandler } from '../utils/asyncHandler';
 
 const router = Router();
-router.use(authenticate, requireRole('admin'));
+router.use(authenticate, requireRole('admin', 'instructor'));
 
 const idParams = z.object({ id: z.string().regex(/^[a-f\d]{24}$/i) });
 
@@ -32,8 +32,9 @@ function mediaDto(asset: any) {
 
 router.get(
   '/',
-  asyncHandler(async (_request, response) => {
-    const assets = await MediaAsset.find().sort({ createdAt: -1 }).limit(500);
+  asyncHandler(async (request, response) => {
+    const filter = request.auth!.role === 'admin' ? {} : { uploadedBy: request.auth!.userId };
+    const assets = await MediaAsset.find(filter).sort({ createdAt: -1 }).limit(500);
     const data = assets.map(mediaDto);
     response.json({ data, media: data });
   }),
@@ -78,6 +79,12 @@ router.delete(
   asyncHandler(async (request, response) => {
     const asset = await MediaAsset.findById(request.params.id);
     if (!asset) throw new AppError(404, 'MEDIA_NOT_FOUND', 'Media asset not found');
+    if (
+      request.auth!.role === 'instructor' &&
+      asset.uploadedBy.toString() !== request.auth!.userId
+    ) {
+      throw new AppError(403, 'MEDIA_OWNERSHIP_REQUIRED', 'You can delete only media that you uploaded');
+    }
     const usedByCourses = await Course.find({
       $or: [{ coverImage: asset.url }, { 'modules.blocks.url': asset.url }],
     })
@@ -87,12 +94,16 @@ router.delete(
     if (usedByCourses.length) {
       throw new AppError(409, 'MEDIA_IN_USE', 'Media asset is referenced by one or more courses', {
         usageCount: usedByCourses.length,
-        courses: usedByCourses.map((course) => ({
-          id: course._id.toString(),
-          code: course.code,
-          title: course.title,
-          status: course.status,
-        })),
+        ...(request.auth!.role === 'admin'
+          ? {
+              courses: usedByCourses.map((course) => ({
+                id: course._id.toString(),
+                code: course.code,
+                title: course.title,
+                status: course.status,
+              })),
+            }
+          : {}),
       });
     }
     const uploadsRoot = path.resolve(getEnv().uploadsDirectory);

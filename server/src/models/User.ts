@@ -1,6 +1,6 @@
 import { model, Schema, type HydratedDocument, type Model, type Types } from 'mongoose';
 
-export const USER_ROLES = ['admin', 'learner'] as const;
+export const USER_ROLES = ['admin', 'instructor', 'learner'] as const;
 export const USER_STATUSES = ['active', 'disabled'] as const;
 
 export interface IUser {

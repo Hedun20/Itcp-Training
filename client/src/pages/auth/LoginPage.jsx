@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, LockKeyhole } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
@@ -6,6 +6,7 @@ import { AuthShell } from '../../branding/layouts';
 import { TrainingButton, TrainingInput } from '../../branding/components';
 import { FeedbackBanner } from '../../components/FeedbackBanner';
 import { GoogleSignInButton } from '../../components/GoogleSignInButton';
+import { roleHomePath } from '../../utils/roles';
 
 export function LoginPage() {
   const { login } = useAuth();
@@ -15,19 +16,23 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const submittingRef = useRef(false);
 
   const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
   const submit = async (event) => {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setError('');
     setSubmitting(true);
     try {
       const user = await login({ email: form.email.trim(), password: form.password });
       const requested = location.state?.from?.pathname;
-      navigate(requested || (user.role === 'admin' ? '/admin' : '/dashboard'), { replace: true });
+      navigate(requested || roleHomePath(user.role), { replace: true });
     } catch (requestError) {
       setError(requestError.message || 'Sign-in failed. Check your details and try again.');
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   };

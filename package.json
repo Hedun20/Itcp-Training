@@ -15,7 +15,10 @@
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "seed": "npm run seed --workspace @itcp/server",
-    "seed:admin": "npm run seed:admin --workspace @itcp/server"
+    "seed:admin": "npm run seed:admin --workspace @itcp/server",
+    "seed:repair-content": "npm run seed:repair-content --workspace @itcp/server",
+    "content:verify": "npm run content:verify --workspace @itcp/server",
+    "content:verify-source": "npm run content:verify-source --workspace @itcp/server"
   },
   "engines": {
     "node": ">=20.0.0",

@@ -74,4 +74,12 @@ describe('admin course form validation', () => {
     });
     expect(payload.assessment.questions[0].points).toBe(0);
   });
+
+  it('preserves the explicit training-placeholder marker on seeded image blocks', () => {
+    const payload = prepareCoursePayload({
+      ...emptyCourse,
+      modules: [{ title: 'Visual module', blocks: [{ type: 'image', url: '/training-placeholder.svg', altText: 'Neutral training visual', placeholder: true }] }],
+    });
+    expect(payload.modules[0].blocks[0]).toMatchObject({ type: 'image', placeholder: true });
+  });
 });

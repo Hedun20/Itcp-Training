@@ -20,24 +20,39 @@ export function CoursePlayerPage() {
   const isMobile = useMediaQuery('(max-width: 860px)');
   const outlineToggleRef = useRef(null);
   const outlineRef = useRef(null);
+  const savingRef = useRef(false);
   const outlineClosed = isMobile && !outlineOpen;
   const currentIndex = Math.max(0, Number.parseInt(moduleIndex || '0', 10) || 0);
+  const requestedIndexRef = useRef(currentIndex);
+  requestedIndexRef.current = currentIndex;
 
   const load = useCallback(async () => {
-    setState((current) => ({ ...current, loading: true, error: '' }));
+    setState((current) => ({ ...current, loading: !current.course || current.course.slug !== slug, error: '' }));
     try {
       const course = await coursesApi.get(slug);
       let progress = null;
       try { progress = await learningApi.courseProgress(courseId(course)); } catch (error) { if (error.status !== 404) throw error; }
       setState({ loading: false, course, progress, error: '' });
-      if (course.modules?.length) {
-        const resumeIndex = Math.min(currentIndex, course.modules.length - 1);
-        learningApi.saveProgress(courseId(course), { currentModuleIndex: resumeIndex, completedModuleIds: progress?.completedModuleIds || [] })
-          .then((updated) => setState((current) => ({ ...current, progress: updated })))
-          .catch((error) => setSaveError(error.message));
+      if (course.modules?.length && !savingRef.current) {
+        const resumeIndex = Math.min(requestedIndexRef.current, course.modules.length - 1);
+        savingRef.current = true;
+        setSaving(true);
+        setSaveError('');
+        try {
+          const updated = await learningApi.saveProgress(courseId(course), {
+            currentModuleIndex: resumeIndex,
+            completedModuleIds: progress?.completedModuleIds || [],
+          });
+          setState((current) => ({ ...current, progress: updated }));
+        } catch (error) {
+          setSaveError(error.message);
+        } finally {
+          savingRef.current = false;
+          setSaving(false);
+        }
       }
     } catch (error) { setState((current) => ({ ...current, loading: false, error: error.message })); }
-  }, [currentIndex, slug]);
+  }, [slug]);
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
     if (!isMobile || !outlineOpen) return undefined;
@@ -65,7 +80,8 @@ export function CoursePlayerPage() {
   const courseKey = state.course?.slug || slug;
 
   const goTo = async (nextIndex, markComplete = false) => {
-    if (!state.course || saving) return;
+    if (!state.course || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setSaveError('');
     const currentId = moduleId(currentModule, safeIndex);
@@ -79,11 +95,12 @@ export function CoursePlayerPage() {
       navigate(`/courses/${courseKey}/learn/${nextIndex}`);
       setOutlineOpen(false);
     } catch (error) { setSaveError(error.message || 'Progress could not be saved.'); }
-    finally { setSaving(false); }
+    finally { savingRef.current = false; setSaving(false); }
   };
 
   const finishAndAssess = async () => {
-    if (!state.course || saving) return;
+    if (!state.course || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setSaveError('');
     const currentId = moduleId(currentModule, safeIndex);
@@ -93,7 +110,7 @@ export function CoursePlayerPage() {
       setState((current) => ({ ...current, progress }));
       navigate(`/courses/${courseKey}/assessment`);
     } catch (error) { setSaveError(error.message || 'Progress could not be saved.'); }
-    finally { setSaving(false); }
+    finally { savingRef.current = false; setSaving(false); }
   };
 
   if (state.loading) return <LoadingState label="Preparing your module…" />;

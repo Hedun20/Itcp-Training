@@ -6,10 +6,53 @@ import { normalizeEmail } from '../utils/email';
 
 let configured = false;
 
+export interface PendingGoogleIdentity {
+  googleId: string;
+  email: string;
+  normalizedEmail: string;
+  name: string;
+  avatarUrl?: string;
+}
+
+export type GoogleAuthentication =
+  | { kind: 'existing'; user: IUser }
+  | { kind: 'new'; identity: PendingGoogleIdentity };
+
 export function verifiedGoogleEmail(profile: Pick<Profile, 'emails'>): string {
   const email = profile.emails?.find((candidate) => candidate.verified === true)?.value;
   if (!email) throw new Error('Google profile did not provide a verified email address');
   return email;
+}
+
+export async function resolveGoogleProfile(profile: Profile): Promise<GoogleAuthentication> {
+  const email = verifiedGoogleEmail(profile).trim();
+  const normalizedEmail = normalizeEmail(email);
+  const [googleUser, emailUser] = await Promise.all([
+    User.findOne({ googleId: profile.id }),
+    User.findOne({ normalizedEmail }),
+  ]);
+  if (googleUser && emailUser && !googleUser._id.equals(emailUser._id)) {
+    throw new Error('Google identity conflicts with an existing account');
+  }
+  const user = googleUser ?? emailUser;
+  if (user) {
+    if (user.status !== 'active') throw new Error('Account is unavailable');
+    user.googleId = profile.id;
+    user.avatarUrl = profile.photos?.[0]?.value ?? user.avatarUrl;
+    user.lastLoginAt = new Date();
+    await user.save();
+    return { kind: 'existing', user };
+  }
+  return {
+    kind: 'new',
+    identity: {
+      googleId: profile.id,
+      email,
+      normalizedEmail,
+      name: (profile.displayName || normalizedEmail.split('@')[0]!).trim().slice(0, 120),
+      avatarUrl: profile.photos?.[0]?.value?.slice(0, 2_000),
+    },
+  };
 }
 
 export function configurePassport(): boolean {
@@ -25,28 +68,8 @@ export function configurePassport(): boolean {
       },
       async (_accessToken: string, _refreshToken: string, profile: Profile, done) => {
         try {
-          const email = verifiedGoogleEmail(profile);
-          const normalizedEmail = normalizeEmail(email);
-          let user = await User.findOne({ $or: [{ googleId: profile.id }, { normalizedEmail }] });
-          if (user) {
-            if (user.status !== 'active') return done(new Error('Account is unavailable'));
-            user.googleId = profile.id;
-            user.avatarUrl = profile.photos?.[0]?.value ?? user.avatarUrl;
-            user.lastLoginAt = new Date();
-            await user.save();
-          } else {
-            user = await User.create({
-              name: profile.displayName || normalizedEmail.split('@')[0],
-              email: email.trim(),
-              normalizedEmail,
-              googleId: profile.id,
-              avatarUrl: profile.photos?.[0]?.value,
-              role: 'learner',
-              status: 'active',
-              lastLoginAt: new Date(),
-            });
-          }
-          return done(null, user as unknown as Express.User & IUser);
+          const authentication = await resolveGoogleProfile(profile);
+          return done(null, authentication as unknown as Express.User);
         } catch (error) {
           return done(error as Error);
         }

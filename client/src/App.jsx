@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AnonymousRoute, HomeRoute, ProtectedRoute, RoleRoute } from './auth/RouteGuards';
-import { AdminShell, LearnerShell } from './branding/layouts';
+import { AdminShell, InstructorShell, LearnerShell } from './branding/layouts';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
@@ -20,6 +20,7 @@ import { CourseEditorPage } from './pages/admin/CourseEditorPage';
 import { AdminMediaPage } from './pages/admin/AdminMediaPage';
 import { AdminUsersPage } from './pages/admin/AdminUsersPage';
 import { AdminResultsPage } from './pages/admin/AdminResultsPage';
+import { InstructorProgressPage } from './pages/instructor/InstructorProgressPage';
 
 export function App() {
   return (
@@ -31,7 +32,7 @@ export function App() {
       <Route path="/auth/callback" element={<OAuthCallbackPage />} />
       <Route element={<ProtectedRoute />}>
         <Route index element={<HomeRoute />} />
-        <Route element={<RoleRoute roles={['learner', 'admin']} />}>
+        <Route element={<RoleRoute roles={['learner']} />}>
           <Route element={<LearnerShell />}>
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="courses" element={<CourseCatalogPage />} />
@@ -42,6 +43,16 @@ export function App() {
             <Route path="progress" element={<ProgressPage />} />
             <Route path="history" element={<AttemptHistoryPage />} />
             <Route path="profile" element={<ProfilePage />} />
+          </Route>
+        </Route>
+        <Route element={<RoleRoute roles={['instructor']} />}>
+          <Route path="instructor" element={<InstructorShell />}>
+            <Route index element={<Navigate to="courses" replace />} />
+            <Route path="courses" element={<AdminCourseListPage />} />
+            <Route path="courses/new" element={<CourseEditorPage />} />
+            <Route path="courses/:courseId/edit" element={<CourseEditorPage />} />
+            <Route path="media" element={<AdminMediaPage />} />
+            <Route path="progress" element={<InstructorProgressPage />} />
           </Route>
         </Route>
         <Route element={<RoleRoute roles={['admin']} />}>
