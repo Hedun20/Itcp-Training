@@ -6,6 +6,7 @@ import { AuthProvider } from './auth/AuthContext';
 import { ThemeProvider } from './branding/theme/ThemeProvider';
 import { RouteAnnouncer } from './components/RouteAnnouncer';
 import './branding/theme/global.css';
+import './branding/theme/refinements.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
