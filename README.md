@@ -25,6 +25,7 @@ ITCP-Training/
 │   ├── src/services/       Auth, courses, progress, scoring, and media logic
 │   ├── src/seeds/          Idempotent courses and administrator seed
 │   └── uploads/            Git-ignored runtime image storage
+├── deploy/                 Self-hosted Docker, MongoDB, Nginx, and runbook
 ├── docs/                   Architecture, security, operations, and migration notes
 ├── .env.example
 └── package.json            npm-workspace scripts
@@ -36,7 +37,7 @@ ITCP-Training/
 - npm 10 or newer.
 - A local or remote MongoDB connection.
 
-MongoDB is intentionally not embedded in the production runtime. On Windows PowerShell systems that block `npm.ps1`, use `npm.cmd` as shown below.
+MongoDB is not embedded in the application process. Local development can use any reachable MongoDB instance, while the production bundle under `deploy/` can run a private MongoDB container on the same server. On Windows PowerShell systems that block `npm.ps1`, use `npm.cmd` as shown below.
 
 ## Local setup
 
@@ -98,7 +99,9 @@ npm.cmd run test
 npm.cmd run build
 ```
 
-Serve `client/dist` through a static host and run `server/dist/server.js` as the API process. Use TLS, a restricted MongoDB account, a persistent uploads volume, a production secret manager, and the exact deployed `CLIENT_URL`. Uploaded runtime files and `.env` are ignored by Git.
+The recommended same-server deployment is documented in [deploy/README.md](deploy/README.md). It builds separate web and API images, runs MongoDB privately without publishing port `27017`, persists database and uploads volumes, and binds the application only to a localhost port for the hosting panel or host Nginx to expose over HTTPS.
+
+For a manual deployment, serve `client/dist` through a static host and run `server/dist/server.js` as the API process. Use TLS, a restricted MongoDB account, a persistent uploads volume, a production secret manager, and the exact deployed `CLIENT_URL`. Uploaded runtime files and `.env` are ignored by Git.
 
 `VITE_*` values are embedded when the client is built. The instructor registration code must never use a `VITE_` name; it belongs only in the backend environment. The example keeps `VITE_API_URL=/api/v1`, which is safe for local development and a same-origin production reverse proxy. In that deployment, route both `/api/v1` and `/uploads` to the Express service. For a deliberately split client/API deployment, set `VITE_API_URL=https://api.example.com/api/v1` (and `VITE_MEDIA_ORIGIN` if media uses another origin) in the build environment before `npm.cmd run build`; never ship the example localhost URL.
 
@@ -109,6 +112,7 @@ Because the client uses `BrowserRouter`, the static host must fall back to `clie
 - [Architecture](docs/architecture.md)
 - [Security notes](docs/security.md)
 - [Operations](docs/operations.md)
+- [Production deployment](deploy/README.md)
 - [Course migration](docs/content-migration.md)
 - [Brand system](docs/brand-system.md)
 - [API reference](docs/api.md)
