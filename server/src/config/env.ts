@@ -26,12 +26,16 @@ const optionalUrl = z.preprocess(
   (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
   z.string().url().optional(),
 );
+const optionalEmail = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+  z.string().email().optional(),
+);
 
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65_535).default(4000),
-    CLIENT_URL: z.string().url().default('http://localhost:5173'),
+    CLIENT_URL: z.string().min(1).default('http://localhost:5173'),
     MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
     JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
     JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
@@ -54,6 +58,10 @@ const envSchema = z
     GOOGLE_CLIENT_ID: optionalNonEmptyString,
     GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
     GOOGLE_CALLBACK_URL: optionalUrl,
+    GOOGLE_GMAIL_REFRESH_TOKEN: optionalNonEmptyString,
+    GOOGLE_GMAIL_SENDER: optionalEmail,
+    GOOGLE_GMAIL_SENDER_NAME: z.string().trim().min(1).max(120).default('ITCP Training'),
+    PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(180).default(30),
     ADMIN_NAME: z.string().min(2).optional(),
     ADMIN_EMAIL: z.string().email().optional(),
     // Seed-only credential. Strength is enforced by seedAdmin so stale seed values
@@ -67,6 +75,21 @@ const envSchema = z
         code: z.ZodIssueCode.custom,
         path: ['GOOGLE_CLIENT_ID'],
         message: 'Google OAuth requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_CALLBACK_URL together',
+      });
+    }
+    const gmailSupplied = [env.GOOGLE_GMAIL_REFRESH_TOKEN, env.GOOGLE_GMAIL_SENDER].filter(Boolean).length;
+    if (gmailSupplied > 0 && !(env.GOOGLE_GMAIL_REFRESH_TOKEN && env.GOOGLE_GMAIL_SENDER)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['GOOGLE_GMAIL_REFRESH_TOKEN'],
+        message: 'Gmail password recovery requires GOOGLE_GMAIL_REFRESH_TOKEN and GOOGLE_GMAIL_SENDER together',
+      });
+    }
+    if (gmailSupplied > 0 && !(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['GOOGLE_GMAIL_REFRESH_TOKEN'],
+        message: 'Gmail password recovery also requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET',
       });
     }
     if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
@@ -98,6 +121,7 @@ export type Env = z.infer<typeof envSchema> & {
   allowedOrigins: string[];
   uploadsDirectory: string;
   googleEnabled: boolean;
+  passwordResetEmailEnabled: boolean;
 };
 
 let cachedEnv: Env | undefined;
@@ -119,6 +143,12 @@ export function getEnv(): Env {
       : path.resolve(serverRoot, parsed.data.UPLOADS_DIRECTORY),
     googleEnabled: Boolean(
       parsed.data.GOOGLE_CLIENT_ID && parsed.data.GOOGLE_CLIENT_SECRET && parsed.data.GOOGLE_CALLBACK_URL,
+    ),
+    passwordResetEmailEnabled: Boolean(
+      parsed.data.GOOGLE_CLIENT_ID &&
+      parsed.data.GOOGLE_CLIENT_SECRET &&
+      parsed.data.GOOGLE_GMAIL_REFRESH_TOKEN &&
+      parsed.data.GOOGLE_GMAIL_SENDER,
     ),
   };
   return cachedEnv;
