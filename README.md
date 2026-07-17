@@ -1,6 +1,6 @@
 # ITCP Training
 
-ITCP Training is the full-stack learning platform for ITCP Europe. It provides a branded learner journey, an ownership-scoped instructor CMS, secure administration, server-scored assessments, persistent progress, local image management, audit records, and role-based authentication.
+ITCP Training is the full-stack learning platform for ITCP Europe. It provides a branded learner journey, an ownership-scoped instructor CMS, secure administration, server-scored assessments, persistent progress, local image management, audit records, role-based authentication, and verified account recovery.
 
 ## What is included
 
@@ -9,6 +9,8 @@ ITCP Training is the full-stack learning platform for ITCP Europe. It provides a
 - Learner catalog, course player, resume support, assessment results, progress, attempt history, and profile.
 - Instructor self-registration behind a server-only six-digit access code, plus owned-course authoring, media, learner progress, and result views.
 - Admin course, module, structured-block, assessment, media, user, progress, and result management with CSV export.
+- Personnel-style learner record folders with progress summaries, course history, and assessment attempts.
+- Single-use password reset links delivered through Gmail API for learner, instructor, and administrator accounts.
 - Idempotent migration of DCT-01, DCT-02, HSE-01, and ACS-01 from the original prototype.
 - Optional Google OAuth that remains safely unavailable until all credentials are configured.
 - Focused frontend and backend tests rather than snapshot-heavy coverage.
@@ -22,7 +24,7 @@ ITCP-Training/
 ├── server/                 Express/TypeScript API
 │   ├── src/models/         MongoDB models
 │   ├── src/routes/         Versioned API route handlers
-│   ├── src/services/       Auth, courses, progress, scoring, and media logic
+│   ├── src/services/       Auth, courses, progress, scoring, media, and mail logic
 │   ├── src/seeds/          Idempotent courses and administrator seed
 │   └── uploads/            Git-ignored runtime image storage
 ├── deploy/                 Self-hosted Docker, MongoDB, Nginx, and runbook
@@ -52,7 +54,8 @@ Edit `.env` before running the application:
 - replace `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` with different high-entropy values;
 - point `MONGODB_URI` at an available database;
 - set a strong `ADMIN_PASSWORD` and a real administrator email;
-- leave all three Google variables blank unless the provider is configured.
+- configure all three Google OAuth values together to activate Google sign-in;
+- configure the Gmail refresh token and sender to activate password reset email;
 - the example enables instructor registration, but the endpoint remains unavailable until a six-digit `INSTRUCTOR_REGISTRATION_CODE` is supplied through the backend runtime or secret manager; disable it in environments where self-registration is not intended.
 
 Seed the four migrated courses and the first administrator, then start both applications:
@@ -90,6 +93,8 @@ Access tokens are kept in client memory and are never written to localStorage. T
 
 Google sign-in is optional. Configure `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_CALLBACK_URL` together and add that exact callback to the Google OAuth client. A first-time verified Google identity selects learner or instructor after OAuth; instructor selection uses the same backend-only code policy. An existing Google-linked or same-email account signs in with its stored role and cannot use onboarding to change it. With any or all Google values absent, the provider stays disabled without affecting email/password login.
 
+Password recovery uses the same Google Cloud OAuth client plus a server-only Gmail refresh token with the `gmail.send` scope. Reset links are stored only as SHA-256 digests, expire automatically, work once, and revoke every active refresh session after the new password is saved. See [Google OAuth and Gmail API setup](docs/google-oauth-and-mail.md).
+
 ## Production
 
 ```powershell
@@ -113,6 +118,7 @@ Because the client uses `BrowserRouter`, the static host must fall back to `clie
 - [Security notes](docs/security.md)
 - [Operations](docs/operations.md)
 - [Production deployment](deploy/README.md)
+- [Google OAuth and Gmail API](docs/google-oauth-and-mail.md)
 - [Course migration](docs/content-migration.md)
 - [Brand system](docs/brand-system.md)
 - [API reference](docs/api.md)
