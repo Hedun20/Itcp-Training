@@ -47,6 +47,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Validate PM2 configuration
+        run: node -e "const c=require('./deploy/pm2/ecosystem.config.cjs'); if(!Array.isArray(c.apps)||c.apps[0]?.name!=='itcp-training-api') process.exit(1)"
+
+      - name: Validate PM2 deployment script
+        run: bash -n deploy/scripts/deploy-pm2.sh
+
   production-containers:
     name: Production containers
     runs-on: ubuntu-latest
