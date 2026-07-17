@@ -39,4 +39,6 @@ fi
 APP_HTTP_PORT="$(grep -E '^APP_HTTP_PORT=' "${DEPLOY_DIR}/.env.stack" | tail -1 | cut -d= -f2-)"
 APP_HTTP_PORT="${APP_HTTP_PORT:-8088}"
 
-node -e "fetch('http://127.0.0.1:${APP_HTTP_PORT}/api/v1/health').then(async r=>{console.log(await r.text());if(!r.ok)process.exit(1)}).catch(e=>{console.error(e);process.exit(1)})"
+curl --fail --silent --show-error --retry 12 --retry-delay 5 --retry-connrefused \
+  "http://127.0.0.1:${APP_HTTP_PORT}/api/v1/health"
+printf '\nDeployment health check passed.\n'
