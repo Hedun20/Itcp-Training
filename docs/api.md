@@ -11,6 +11,9 @@ The default base URL is `http://localhost:4000/api/v1`. JSON endpoints use the s
 | `POST` | `/auth/refresh` | Refresh cookie, rate limited | Rotate the refresh token and issue a new access token. |
 | `POST` | `/auth/logout` | Refresh cookie, rate limited | Revoke the active refresh record and clear the cookie. |
 | `GET` | `/auth/me` | Access token | Return the current user. |
+| `GET` | `/auth/password-reset/status` | Public | Report whether Gmail API delivery for password recovery is configured. |
+| `POST` | `/auth/forgot-password` | Public, rate limited | Accept an account email and send a single-use reset link without revealing whether the account exists. |
+| `POST` | `/auth/reset-password` | Public, rate limited | Replace the password using a valid reset token and revoke existing refresh sessions. |
 | `GET` | `/auth/google/status` | Public | Report whether the optional provider is configured. |
 | `GET` | `/auth/google` | Public | Start Google OAuth, or return a controlled `503` when unavailable. |
 | `GET` | `/auth/google/callback` | Google/state cookie | Sign in an existing user or create a short-lived HTTP-only onboarding state for a new identity. |
@@ -18,7 +21,9 @@ The default base URL is `http://localhost:4000/api/v1`. JSON endpoints use the s
 
 The only public roles are `learner` and `instructor`; `admin` is rejected. Learner registration does not need a code. Instructor registration requires exactly six digits and succeeds only when server-side registration is enabled and the code matches the backend secret. The instructor code is never returned by an endpoint. Existing Google users keep their persisted role regardless of any onboarding payload. The access token is sent as `Authorization: Bearer <token>`. The refresh token is not returned in JSON.
 
-Login and registration have production-strength limits with more permissive development limits. Instructor-code failures additionally consume independent windows keyed by client IP and normalized email. `/auth/me` and `/auth/google/status` do not consume login attempts.
+Password reset requests return the same accepted message for existing and unknown emails. Tokens are stored only as SHA-256 digests, expire automatically, and are single-use. A successful reset works for learner, instructor, and administrator accounts and revokes every still-active refresh session belonging to that account. Delivery uses Gmail API with a server-only refresh token carrying the `gmail.send` scope.
+
+Login, registration, and recovery have production-strength limits with more permissive development limits. Instructor-code failures additionally consume independent windows keyed by client IP and normalized email. `/auth/me`, `/auth/google/status`, and `/auth/password-reset/status` do not consume login attempts.
 
 If two same-client refresh requests race, the losing request can return `409 REFRESH_RACE_RETRY` with `details.retryable=true` and a short `retryAfterMs`. It does not clear the cookie or revoke the winning token family. Older or mismatched reuse remains a `401` and revokes the family.
 
