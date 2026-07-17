@@ -40,6 +40,7 @@ export function LoginPage() {
   return (
     <AuthShell eyebrow="Welcome back" title="Sign in to your training" description="Continue your learning securely from where you stopped.">
       {location.state?.registered && <FeedbackBanner tone="success">Your account is ready. Welcome to ITCP Training.</FeedbackBanner>}
+      {location.state?.passwordReset && <FeedbackBanner tone="success">Your password has been changed. Sign in with the new password.</FeedbackBanner>}
       {error && <FeedbackBanner tone="danger">{error}</FeedbackBanner>}
       <GoogleSignInButton />
       <div className="auth-divider"><span>or use email</span></div>
