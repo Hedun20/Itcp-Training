@@ -9,11 +9,11 @@ This directory contains a self-hosted production stack:
 
 MongoDB and the API do not publish host ports. Only the web service binds to `127.0.0.1:8088` by default, so the hosting panel or host Nginx must expose the public HTTPS domain.
 
-## 1. Confirm the domain
+## 1. Domain
 
-The prepared target is `icp-europe.nl`, exactly as requested. The company name is ITCP Europe, so confirm that the registered DNS name does not include the missing `t` before requesting the TLS certificate.
+The production domain for ITCP Training is `itcpeurope.nl`. The existing ITCP Europe landing remains on `itcpeurope.com`.
 
-Create DNS records for the confirmed domain and optional `www` name pointing to the production server.
+Create DNS records for `itcpeurope.nl` and the optional `www.itcpeurope.nl` name pointing to the production server.
 
 ## 2. Server requirements
 
@@ -110,7 +110,7 @@ curl -fsS http://127.0.0.1:8088/api/v1/health
 
 ## 6. Connect the public domain
 
-In the hosting panel, create a reverse proxy from the confirmed HTTPS domain to:
+In the hosting panel, create a reverse proxy from `https://itcpeurope.nl` to:
 
 ```text
 http://127.0.0.1:8088
