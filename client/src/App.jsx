@@ -4,6 +4,7 @@ import { AdminShell, InstructorShell, LearnerShell } from './branding/layouts';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { OAuthCallbackPage } from './pages/auth/OAuthCallbackPage';
 import { DashboardPage } from './pages/learner/DashboardPage';
 import { CourseCatalogPage } from './pages/learner/CourseCatalogPage';
@@ -28,6 +29,7 @@ export function App() {
       <Route path="/login" element={<AnonymousRoute><LoginPage /></AnonymousRoute>} />
       <Route path="/register" element={<AnonymousRoute><RegisterPage /></AnonymousRoute>} />
       <Route path="/forgot-password" element={<AnonymousRoute><ForgotPasswordPage /></AnonymousRoute>} />
+      <Route path="/reset-password" element={<AnonymousRoute><ResetPasswordPage /></AnonymousRoute>} />
       <Route path="/auth/google/callback" element={<OAuthCallbackPage />} />
       <Route path="/auth/callback" element={<OAuthCallbackPage />} />
       <Route element={<ProtectedRoute />}>
