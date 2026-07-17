@@ -1,0 +1,24 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY client/package.json client/package.json
+COPY server/package.json server/package.json
+RUN npm ci
+
+COPY client client
+
+ARG VITE_API_URL=/api/v1
+ARG VITE_MEDIA_ORIGIN=
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_MEDIA_ORIGIN=${VITE_MEDIA_ORIGIN}
+
+RUN npm run build --workspace @itcp/client
+
+FROM nginx:alpine AS runtime
+
+COPY deploy/nginx/default.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /app/client/dist /usr/share/nginx/html
+
+EXPOSE 80
