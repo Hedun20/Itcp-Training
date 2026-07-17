@@ -14,7 +14,9 @@ async function start(): Promise<void> {
   }
 
   const server = http.createServer(createApp());
-  server.listen(env.PORT, () => console.log(`ITCP Training API listening on port ${env.PORT}`));
+  server.listen(env.PORT, '127.0.0.1', () =>
+    console.log(`ITCP Training API listening on 127.0.0.1:${env.PORT}`),
+  );
 
   let shuttingDown = false;
   const shutdown = async (signal: string) => {
