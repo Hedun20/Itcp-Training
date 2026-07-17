@@ -1,9 +1,13 @@
 import { useMemo, useState } from 'react';
 import {
+  Award,
   BookOpenCheck,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   FolderOpen,
+  GraduationCap,
+  Mail,
   Search,
   UserRound,
   XCircle,
@@ -11,8 +15,6 @@ import {
 import {
   Badge,
   EmptyState,
-  TrainingButton,
-  TrainingCard,
   TrainingInput,
   TrainingModal,
 } from '../branding/components';
@@ -52,6 +54,23 @@ function laterDate(current, candidate) {
 
 function progressActivity(progress) {
   return progress.completedAt || progress.lastAccessedAt || progress.updatedAt || progress.startedAt;
+}
+
+function coursePercentage(course) {
+  const value = course.progress?.percentage ?? course.progress?.completionPercentage ?? 0;
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function learnerTone(learner) {
+  if (learner.courses.length > 0 && learner.completedCourses === learner.courses.length) return 'success';
+  if (learner.attemptCount > 0) return 'accent';
+  return 'neutral';
+}
+
+function learnerStatus(learner) {
+  if (learner.courses.length > 0 && learner.completedCourses === learner.courses.length) return 'Training complete';
+  if (learner.attemptCount > 0) return 'Active learner';
+  return 'Training started';
 }
 
 export function buildLearnerRecords(progress = [], results = []) {
@@ -103,6 +122,7 @@ export function buildLearnerRecords(progress = [], results = []) {
           attempts: course.attempts.sort((left, right) => timestamp(right.submittedAt) - timestamp(left.submittedAt)),
         }))
         .sort((left, right) => `${left.code} ${left.title}`.localeCompare(`${right.code} ${right.title}`));
+      const totalProgress = courses.reduce((total, course) => total + coursePercentage(course), 0);
 
       return {
         id: learner.id,
@@ -114,14 +134,10 @@ export function buildLearnerRecords(progress = [], results = []) {
         completedCourses: courses.filter((course) => course.progress?.status === 'completed').length,
         passedCourses: courses.filter((course) => course.attempts.some((attempt) => attempt.passed)).length,
         attemptCount: courses.reduce((total, course) => total + course.attempts.length, 0),
+        overallProgress: courses.length ? Math.round(totalProgress / courses.length) : 0,
       };
     })
     .sort((left, right) => left.name.localeCompare(right.name));
-}
-
-function coursePercentage(course) {
-  const value = course.progress?.percentage ?? course.progress?.completionPercentage ?? 0;
-  return Math.max(0, Math.min(100, Math.round(value)));
 }
 
 function LearnerCourseRecord({ course }) {
@@ -133,57 +149,61 @@ function LearnerCourseRecord({ course }) {
     : progress?.bestScore;
 
   return (
-    <TrainingCard className="learner-course-record">
-      <div className="learner-course-record__header">
-        <div>
-          <div className="badge-row">
+    <details className="learner-course-record">
+      <summary>
+        <span className="learner-course-record__summary-icon"><BookOpenCheck /></span>
+        <span className="learner-course-record__summary-copy">
+          <span className="badge-row">
             {course.code && <Badge>{course.code}</Badge>}
-            {progress && (
-              <Badge tone={progress.status === 'completed' ? 'success' : 'accent'}>
-                {progress.status?.replace('_', ' ')}
-              </Badge>
-            )}
-          </div>
-          <h3>{course.title}</h3>
-        </div>
-        {latestAttempt && (
-          <Badge tone={latestAttempt.passed ? 'success' : 'danger'}>
-            {latestAttempt.passed ? <CheckCircle2 /> : <XCircle />}
-            {latestAttempt.passed ? 'Passed' : 'Not passed'}
-          </Badge>
-        )}
-      </div>
+            {progress && <Badge tone={progress.status === 'completed' ? 'success' : 'accent'}>{progress.status?.replace('_', ' ')}</Badge>}
+          </span>
+          <strong>{course.title}</strong>
+          <small>{percentage}% complete · {course.attempts.length} assessment {course.attempts.length === 1 ? 'attempt' : 'attempts'}</small>
+        </span>
+        <span className="learner-course-record__summary-score">
+          {latestAttempt ? (
+            <Badge tone={latestAttempt.passed ? 'success' : 'danger'}>
+              {latestAttempt.passed ? <CheckCircle2 /> : <XCircle />}
+              {Math.round(latestAttempt.percentage ?? 0)}%
+            </Badge>
+          ) : <Badge>Not assessed</Badge>}
+          <ChevronDown className="learner-course-record__chevron" />
+        </span>
+      </summary>
 
-      {progress && (
+      <div className="learner-course-record__body">
         <div className="course-progress">
           <span>
-            <span>{progress.completedModuleIds?.length || 0} modules complete</span>
+            <span>{progress?.completedModuleIds?.length || 0} modules complete</span>
             <strong>{percentage}%</strong>
           </span>
           <progress value={percentage} max="100" />
         </div>
-      )}
 
-      <dl className="learner-course-metrics">
-        <div><dt>Attempts</dt><dd>{course.attempts.length}</dd></div>
-        <div><dt>Best score</dt><dd>{Number.isFinite(bestScore) ? `${bestScore}%` : '—'}</dd></div>
-        <div><dt>Last activity</dt><dd>{formatDateTime(course.lastActivity)}</dd></div>
-      </dl>
+        <dl className="learner-course-metrics">
+          <div><dt>Attempts</dt><dd>{course.attempts.length}</dd></div>
+          <div><dt>Best score</dt><dd>{Number.isFinite(bestScore) ? `${bestScore}%` : '—'}</dd></div>
+          <div><dt>Last activity</dt><dd>{formatDateTime(course.lastActivity)}</dd></div>
+        </dl>
 
-      {course.attempts.length > 0 && (
-        <div className="learner-attempt-list" aria-label={`${course.title} assessment attempts`}>
-          {course.attempts.slice(0, 5).map((attempt, index) => (
-            <div className="learner-attempt-row" key={attempt._id || attempt.id || `${course.key}-${index}`}>
-              <span>
-                <strong>{Math.round(attempt.percentage ?? 0)}%</strong>
-                <small>{formatDateTime(attempt.submittedAt)}</small>
-              </span>
-              <Badge tone={attempt.passed ? 'success' : 'danger'}>{attempt.passed ? 'Passed' : 'Not passed'}</Badge>
-            </div>
-          ))}
-        </div>
-      )}
-    </TrainingCard>
+        {course.attempts.length > 0 ? (
+          <div className="learner-attempt-list" aria-label={`${course.title} assessment attempts`}>
+            {course.attempts.slice(0, 5).map((attempt, index) => (
+              <div className="learner-attempt-row" key={attempt._id || attempt.id || `${course.key}-${index}`}>
+                <span className="learner-attempt-row__index">{String(index + 1).padStart(2, '0')}</span>
+                <span>
+                  <strong>{Math.round(attempt.percentage ?? 0)}%</strong>
+                  <small>{formatDateTime(attempt.submittedAt)}</small>
+                </span>
+                <Badge tone={attempt.passed ? 'success' : 'danger'}>{attempt.passed ? 'Passed' : 'Not passed'}</Badge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="learner-course-record__empty">No assessment attempt has been submitted for this course.</p>
+        )}
+      </div>
+    </details>
   );
 }
 
@@ -207,8 +227,13 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
 
   return (
     <>
-      <div className="filter-bar">
-        <div className="search-field">
+      <div className="learner-record-toolbar">
+        <div>
+          <span className="learner-record-toolbar__eyebrow">Personnel records</span>
+          <strong>{learners.length} learner {learners.length === 1 ? 'folder' : 'folders'}</strong>
+          <small>Open a folder to review progress, assessment history, and recent activity.</small>
+        </div>
+        <div className="search-field learner-record-search">
           <Search />
           <TrainingInput
             aria-label="Search learner records"
@@ -217,37 +242,44 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <Badge>{visibleLearners.length} learners</Badge>
       </div>
 
       {visibleLearners.length ? (
         <div className="learner-record-grid">
           {visibleLearners.map((learner) => (
-            <TrainingCard className="learner-record-card" key={learner.key}>
-              <div className="learner-record-card__identity">
-                <span className="avatar learner-record-card__avatar">{learner.name?.charAt(0)?.toUpperCase() || '?'}</span>
-                <span>
-                  <h2>{learner.name}</h2>
-                  <p>{learner.email || 'No email available'}</p>
+            <button
+              className="learner-folder-card"
+              key={learner.key}
+              type="button"
+              onClick={() => setSelectedKey(learner.key)}
+              aria-label={`Open training record for ${learner.name}`}
+            >
+              <span className="learner-folder-card__tab"><FolderOpen /></span>
+              <span className="learner-folder-card__header">
+                <span className="avatar learner-folder-card__avatar">{learner.name?.charAt(0)?.toUpperCase() || '?'}</span>
+                <span className="learner-folder-card__identity">
+                  <strong>{learner.name}</strong>
+                  <span><Mail />{learner.email || 'No email available'}</span>
                 </span>
-              </div>
-              <div className="learner-record-card__stats">
-                <span><BookOpenCheck /><strong>{learner.courses.length}</strong><small>courses</small></span>
-                <span><CheckCircle2 /><strong>{learner.completedCourses}</strong><small>completed</small></span>
-                <span><Clock3 /><strong>{learner.attemptCount}</strong><small>attempts</small></span>
-              </div>
-              <div className="learner-record-card__footer">
-                <span><Clock3 />Last activity {formatDateTime(learner.lastActivity)}</span>
-                <TrainingButton
-                  variant="secondary"
-                  size="small"
-                  icon={<FolderOpen />}
-                  onClick={() => setSelectedKey(learner.key)}
-                >
-                  Open learner
-                </TrainingButton>
-              </div>
-            </TrainingCard>
+                <Badge tone={learnerTone(learner)}>{learnerStatus(learner)}</Badge>
+              </span>
+
+              <span className="learner-folder-card__progress">
+                <span><span>Overall progress</span><strong>{learner.overallProgress}%</strong></span>
+                <progress value={learner.overallProgress} max="100" />
+              </span>
+
+              <span className="learner-folder-card__metrics">
+                <span><GraduationCap /><strong>{learner.courses.length}</strong><small>Courses</small></span>
+                <span><CheckCircle2 /><strong>{learner.completedCourses}</strong><small>Completed</small></span>
+                <span><Award /><strong>{learner.passedCourses}</strong><small>Passed</small></span>
+              </span>
+
+              <span className="learner-folder-card__footer">
+                <span><Clock3 />{formatDateTime(learner.lastActivity)}</span>
+                <span className="learner-folder-card__open">Open record <FolderOpen /></span>
+              </span>
+            </button>
           ))}
         </div>
       ) : (
@@ -263,18 +295,39 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
       >
         {selectedLearner && (
           <div className="learner-record-detail">
-            <div className="learner-record-detail__summary">
+            <aside className="learner-record-profile">
               <span className="avatar learner-record-detail__avatar"><UserRound /></span>
+              <div>
+                <span className="learner-record-profile__eyebrow">Training record</span>
+                <h3>{selectedLearner.name}</h3>
+                <p>{selectedLearner.email || 'No email available'}</p>
+              </div>
+              <Badge tone={learnerTone(selectedLearner)}>{learnerStatus(selectedLearner)}</Badge>
+              <div className="learner-record-profile__progress">
+                <span><span>Overall progress</span><strong>{selectedLearner.overallProgress}%</strong></span>
+                <progress value={selectedLearner.overallProgress} max="100" />
+              </div>
               <dl className="learner-summary-metrics">
                 <div><dt>Courses</dt><dd>{selectedLearner.courses.length}</dd></div>
                 <div><dt>Completed</dt><dd>{selectedLearner.completedCourses}</dd></div>
                 <div><dt>Passed</dt><dd>{selectedLearner.passedCourses}</dd></div>
                 <div><dt>Attempts</dt><dd>{selectedLearner.attemptCount}</dd></div>
               </dl>
-            </div>
-            <div className="learner-course-list">
-              {selectedLearner.courses.map((course) => <LearnerCourseRecord course={course} key={course.key} />)}
-            </div>
+              <span className="learner-record-profile__activity"><Clock3 />Last activity {formatDateTime(selectedLearner.lastActivity)}</span>
+            </aside>
+
+            <section className="learner-record-courses">
+              <div className="learner-record-courses__heading">
+                <div>
+                  <span>Course history</span>
+                  <h3>Progress and assessments</h3>
+                </div>
+                <Badge>{selectedLearner.courses.length} courses</Badge>
+              </div>
+              <div className="learner-course-list">
+                {selectedLearner.courses.map((course) => <LearnerCourseRecord course={course} key={course.key} />)}
+              </div>
+            </section>
           </div>
         )}
       </TrainingModal>
