@@ -25,6 +25,16 @@ export const authApi = {
     const payload = await api.get('/auth/google/status', { skipRefresh: true });
     return payload?.enabled ?? payload?.available ?? false;
   },
+  async passwordResetStatus() {
+    const payload = await api.get('/auth/password-reset/status', { skipRefresh: true });
+    return payload?.enabled ?? payload?.data?.enabled ?? false;
+  },
+  async requestPasswordReset(email) {
+    return api.post('/auth/forgot-password', { email }, { skipRefresh: true });
+  },
+  async resetPassword(token, password) {
+    return api.post('/auth/reset-password', { token, password }, { skipRefresh: true });
+  },
   async completeGoogle(query) {
     const payload = await api.get('/auth/google/callback', { query, skipRefresh: true });
     return authResult(payload);
