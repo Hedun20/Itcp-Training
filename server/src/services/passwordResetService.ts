@@ -2,8 +2,8 @@ import bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'node:crypto';
 import { getEnv } from '../config/env';
 import { PasswordResetToken } from '../models/PasswordResetToken';
+import { RefreshToken } from '../models/RefreshToken';
 import { User } from '../models/User';
-import { revokeAllRefreshTokens } from './tokenService';
 import { sendPasswordResetEmail } from './googleMailService';
 import { AppError } from '../utils/AppError';
 
@@ -67,6 +67,9 @@ export async function resetPassword(rawToken: string, newPassword: string, reque
 
   user.passwordHash = await bcrypt.hash(newPassword, 12);
   await user.save();
-  await revokeAllRefreshTokens(user._id, requestIp);
+  await RefreshToken.updateMany(
+    { userId: user._id, revokedAt: { $exists: false } },
+    { $set: { revokedAt: new Date(), revokedByIp: requestIp } },
+  );
   await PasswordResetToken.deleteMany({ userId: user._id, _id: { $ne: claimed._id } });
 }
