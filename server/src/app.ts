@@ -16,6 +16,7 @@ import { courseRoutes } from './routes/courseRoutes';
 import { healthRoutes } from './routes/healthRoutes';
 import { instructorRoutes } from './routes/instructorRoutes';
 import { mediaRoutes } from './routes/mediaRoutes';
+import { passwordResetRoutes } from './routes/passwordResetRoutes';
 import { progressRoutes } from './routes/progressRoutes';
 import { userRoutes } from './routes/userRoutes';
 
@@ -66,6 +67,7 @@ export function createApp() {
 
   const api = express.Router();
   api.use('/health', healthRoutes);
+  api.use('/auth', passwordResetRoutes);
   api.use('/auth', authRoutes);
   api.use('/users', userRoutes);
   api.use('/courses', courseRoutes);
