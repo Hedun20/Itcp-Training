@@ -93,13 +93,6 @@ const envSchema = z
         message: 'SMTP delivery requires SMTP_HOST, SMTP_USER, SMTP_PASS and EMAIL_FROM together',
       });
     }
-    if (env.NODE_ENV === 'production' && !env.EMAIL_VERIFICATION_BYPASS && smtpSupplied === 0) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['SMTP_HOST'],
-        message: 'Production registration requires SMTP delivery unless EMAIL_VERIFICATION_BYPASS=true',
-      });
-    }
 
     if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
       context.addIssue({
