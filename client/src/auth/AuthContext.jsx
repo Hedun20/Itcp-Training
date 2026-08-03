@@ -51,6 +51,11 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (details) => {
     const result = await authApi.register(details);
+    if (result?.verificationRequired) {
+      setUser(null);
+      setStatus('anonymous');
+      return result;
+    }
     const nextUser = result.user || await authApi.currentUser();
     setUser(nextUser);
     setStatus('authenticated');
