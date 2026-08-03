@@ -62,6 +62,11 @@ function rateLimitResponse(message: string) {
   });
 }
 
+function verificationBypassed(): boolean {
+  const env = getEnv();
+  return env.EMAIL_VERIFICATION_BYPASS || env.NODE_ENV === 'test';
+}
+
 const registrationLimiter = rateLimit({
   windowMs: 15 * 60 * 1_000,
   limit: () => (getEnv().NODE_ENV === 'production' ? 20 : 500),
@@ -116,10 +121,11 @@ function assertInstructorRegistrationAllowed(code: string | undefined): void {
 
 router.get('/email-verification/status', (_request, response) => {
   const env = getEnv();
+  const bypassed = verificationBypassed();
   response.json({
     data: {
-      enabled: env.smtpEnabled || env.EMAIL_VERIFICATION_BYPASS,
-      required: !env.EMAIL_VERIFICATION_BYPASS,
+      enabled: env.smtpEnabled || bypassed,
+      required: !bypassed,
     },
   });
 });
@@ -139,14 +145,15 @@ router.post(
     } = request.body;
 
     if (role === 'instructor') assertInstructorRegistrationAllowed(suppliedInstructorCode);
-    if (!env.EMAIL_VERIFICATION_BYPASS && !env.smtpEnabled) {
+    const bypassed = verificationBypassed();
+    if (!bypassed && !env.smtpEnabled) {
       throw new AppError(503, 'EMAIL_VERIFICATION_UNAVAILABLE', 'Email verification is not configured');
     }
     if (await User.exists({ normalizedEmail })) {
       throw new AppError(409, 'EMAIL_IN_USE', 'An account with this email already exists');
     }
 
-    const verificationRequired = !env.EMAIL_VERIFICATION_BYPASS;
+    const verificationRequired = !bypassed;
     const user = await User.create({
       name,
       email: normalizedEmail,
@@ -234,7 +241,7 @@ router.post(
   validate({ body: resendSchema }),
   asyncHandler(async (request, response) => {
     const env = getEnv();
-    if (env.EMAIL_VERIFICATION_BYPASS) {
+    if (verificationBypassed()) {
       response.status(202).json({ data: { accepted: true } });
       return;
     }
