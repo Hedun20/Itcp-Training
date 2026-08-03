@@ -13,6 +13,7 @@ import { adminRoutes } from './routes/adminRoutes';
 import { attemptRoutes } from './routes/attemptRoutes';
 import { authRoutes } from './routes/authRoutes';
 import { courseRoutes } from './routes/courseRoutes';
+import { emailAuthRoutes } from './routes/emailAuthRoutes';
 import { healthRoutes } from './routes/healthRoutes';
 import { instructorRoutes } from './routes/instructorRoutes';
 import { mediaRoutes } from './routes/mediaRoutes';
@@ -67,6 +68,9 @@ export function createApp() {
 
   const api = express.Router();
   api.use('/health', healthRoutes);
+  // These routes intentionally precede the legacy OAuth/session router so email/password
+  // registration and login enforce verification before the older handlers can match.
+  api.use('/auth', emailAuthRoutes);
   api.use('/auth', passwordResetRoutes);
   api.use('/auth', authRoutes);
   api.use('/users', userRoutes);
