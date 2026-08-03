@@ -150,13 +150,14 @@ async function command(
 
 function createMimeMessage(message: MailMessage): string {
   const env = getEnv();
+  const emailFrom = env.EMAIL_FROM!;
   const boundary = `itcp-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
   const fromName = safeHeader(env.EMAIL_FROM_NAME);
   const to = safeHeader(message.to);
   const subject = safeHeader(message.subject);
-  const messageIdHost = env.EMAIL_FROM.split('@')[1] || 'itcpservices.nl';
+  const messageIdHost = emailFrom.split('@')[1] || 'itcpservices.nl';
   return [
-    `From: "${fromName.replaceAll('"', '')}" <${env.EMAIL_FROM}>`,
+    `From: "${fromName.replaceAll('"', '')}" <${emailFrom}>`,
     `To: ${to}`,
     `Subject: ${subject}`,
     `Date: ${new Date().toUTCString()}`,
@@ -185,10 +186,14 @@ async function sendMail(message: MailMessage): Promise<void> {
   const env = getEnv();
   if (!env.smtpEnabled) throw new Error('SMTP email delivery is not configured');
 
-  const implicitTls = env.SMTP_SECURE ?? env.SMTP_PORT === 465;
+  const smtpHost = env.SMTP_HOST!;
+  const smtpUser = env.SMTP_USER!;
+  const smtpPass = env.SMTP_PASS!;
+  const emailFrom = env.EMAIL_FROM!;
+  const implicitTls = env.SMTP_SECURE ?? (env.SMTP_PORT === 465);
   let socket: SmtpSocket = implicitTls
-    ? tls.connect({ host: env.SMTP_HOST!, port: env.SMTP_PORT, servername: env.SMTP_HOST })
-    : net.createConnection({ host: env.SMTP_HOST!, port: env.SMTP_PORT });
+    ? tls.connect({ host: smtpHost, port: env.SMTP_PORT, servername: smtpHost })
+    : net.createConnection({ host: smtpHost, port: env.SMTP_PORT });
   socket.setTimeout(env.SMTP_TIMEOUT_MS);
   await waitForConnection(socket, implicitTls ? 'secureConnect' : 'connect');
 
@@ -200,7 +205,7 @@ async function sendMail(message: MailMessage): Promise<void> {
 
     if (!implicitTls && capabilities.some((line) => /STARTTLS/i.test(line))) {
       await command(socket, reader, 'STARTTLS', [220]);
-      const secureSocket = tls.connect({ socket, servername: env.SMTP_HOST });
+      const secureSocket = tls.connect({ socket, servername: smtpHost });
       secureSocket.setTimeout(env.SMTP_TIMEOUT_MS);
       await waitForConnection(secureSocket, 'secureConnect');
       socket = secureSocket;
@@ -212,15 +217,15 @@ async function sendMail(message: MailMessage): Promise<void> {
 
     const authLine = capabilities.find((line) => /AUTH/i.test(line)) || '';
     if (/\bPLAIN\b/i.test(authLine)) {
-      const auth = Buffer.from(`\0${env.SMTP_USER}\0${env.SMTP_PASS}`, 'utf8').toString('base64');
+      const auth = Buffer.from(`\0${smtpUser}\0${smtpPass}`, 'utf8').toString('base64');
       await command(socket, reader, `AUTH PLAIN ${auth}`, [235]);
     } else {
       await command(socket, reader, 'AUTH LOGIN', [334]);
-      await command(socket, reader, Buffer.from(env.SMTP_USER!, 'utf8').toString('base64'), [334]);
-      await command(socket, reader, Buffer.from(env.SMTP_PASS!, 'utf8').toString('base64'), [235]);
+      await command(socket, reader, Buffer.from(smtpUser, 'utf8').toString('base64'), [334]);
+      await command(socket, reader, Buffer.from(smtpPass, 'utf8').toString('base64'), [235]);
     }
 
-    await command(socket, reader, `MAIL FROM:<${env.EMAIL_FROM}>`, [250]);
+    await command(socket, reader, `MAIL FROM:<${emailFrom}>`, [250]);
     await command(socket, reader, `RCPT TO:<${message.to}>`, [250, 251]);
     await command(socket, reader, 'DATA', [354]);
     socket.write(`${dotStuff(createMimeMessage(message))}.\r\n`);
