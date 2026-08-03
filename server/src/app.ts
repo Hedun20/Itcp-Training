@@ -15,6 +15,7 @@ import { authRoutes } from './routes/authRoutes';
 import { courseRoutes } from './routes/courseRoutes';
 import { emailAuthRoutes } from './routes/emailAuthRoutes';
 import { healthRoutes } from './routes/healthRoutes';
+import { instructorRegistrationProtectionRoutes } from './routes/instructorRegistrationProtectionRoutes';
 import { instructorRoutes } from './routes/instructorRoutes';
 import { mediaRoutes } from './routes/mediaRoutes';
 import { passwordResetRoutes } from './routes/passwordResetRoutes';
@@ -68,6 +69,9 @@ export function createApp() {
 
   const api = express.Router();
   api.use('/health', healthRoutes);
+  // Registration protection must run before the verified email handler so malformed
+  // and invalid instructor codes still count against both IP and email limits.
+  api.use('/auth', instructorRegistrationProtectionRoutes);
   // These routes intentionally precede the legacy OAuth/session router so email/password
   // registration and login enforce verification before the older handlers can match.
   api.use('/auth', emailAuthRoutes);
