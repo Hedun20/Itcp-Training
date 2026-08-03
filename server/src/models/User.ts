@@ -1,7 +1,7 @@
 import { model, Schema, type HydratedDocument, type Model, type Types } from 'mongoose';
 
 export const USER_ROLES = ['admin', 'instructor', 'learner'] as const;
-export const USER_STATUSES = ['active', 'disabled'] as const;
+export const USER_STATUSES = ['pending_verification', 'active', 'disabled'] as const;
 
 export interface IUser {
   _id: Types.ObjectId;
@@ -13,6 +13,7 @@ export interface IUser {
   avatarUrl?: string;
   role: (typeof USER_ROLES)[number];
   status: (typeof USER_STATUSES)[number];
+  emailVerifiedAt?: Date;
   lastLoginAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -29,7 +30,8 @@ const userSchema = new Schema<IUser>(
     googleId: { type: String, sparse: true, unique: true, index: true },
     avatarUrl: { type: String },
     role: { type: String, enum: USER_ROLES, default: 'learner', required: true },
-    status: { type: String, enum: USER_STATUSES, default: 'active', required: true },
+    status: { type: String, enum: USER_STATUSES, default: 'pending_verification', required: true },
+    emailVerifiedAt: { type: Date },
     lastLoginAt: { type: Date },
   },
   { timestamps: true, versionKey: false },
