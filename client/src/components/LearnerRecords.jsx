@@ -155,7 +155,11 @@ function LearnerCourseRecord({ course }) {
         <span className="learner-course-record__summary-copy">
           <span className="badge-row">
             {course.code && <Badge>{course.code}</Badge>}
-            {progress && <Badge tone={progress.status === 'completed' ? 'success' : 'accent'}>{progress.status?.replace('_', ' ')}</Badge>}
+            {progress && (
+              <Badge tone={progress.status === 'completed' ? 'success' : 'accent'}>
+                {progress.status?.replace('_', ' ')}
+              </Badge>
+            )}
           </span>
           <strong>{course.title}</strong>
           <small>{percentage}% complete · {course.attempts.length} assessment {course.attempts.length === 1 ? 'attempt' : 'attempts'}</small>
@@ -229,9 +233,9 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
     <>
       <div className="learner-record-toolbar">
         <div>
-          <span className="learner-record-toolbar__eyebrow">Personnel records</span>
-          <strong>{learners.length} learner {learners.length === 1 ? 'folder' : 'folders'}</strong>
-          <small>Open a folder to review progress, assessment history, and recent activity.</small>
+          <span className="learner-record-toolbar__eyebrow">Learner intelligence</span>
+          <strong>{learners.length} learner {learners.length === 1 ? 'record' : 'records'}</strong>
+          <small>Review course completion, assessment outcomes, and the latest activity from one place.</small>
         </div>
         <div className="search-field learner-record-search">
           <Search />
@@ -245,23 +249,29 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
       </div>
 
       {visibleLearners.length ? (
-        <div className="learner-record-grid">
-          {visibleLearners.map((learner) => (
+        <div className="learner-record-grid attention-group">
+          {visibleLearners.map((learner, index) => (
             <button
               className="learner-folder-card"
+              data-record-tone={learnerTone(learner)}
               key={learner.key}
               type="button"
               onClick={() => setSelectedKey(learner.key)}
               aria-label={`Open training record for ${learner.name}`}
             >
-              <span className="learner-folder-card__tab"><FolderOpen /></span>
+              <span className="learner-folder-card__topline">
+                <span className="learner-folder-card__record-label">
+                  <FolderOpen /> Learner record {String(index + 1).padStart(2, '0')}
+                </span>
+                <Badge tone={learnerTone(learner)}>{learnerStatus(learner)}</Badge>
+              </span>
+
               <span className="learner-folder-card__header">
                 <span className="avatar learner-folder-card__avatar">{learner.name?.charAt(0)?.toUpperCase() || '?'}</span>
                 <span className="learner-folder-card__identity">
                   <strong>{learner.name}</strong>
                   <span><Mail />{learner.email || 'No email available'}</span>
                 </span>
-                <Badge tone={learnerTone(learner)}>{learnerStatus(learner)}</Badge>
               </span>
 
               <span className="learner-folder-card__progress">
@@ -276,8 +286,8 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
               </span>
 
               <span className="learner-folder-card__footer">
-                <span><Clock3 />{formatDateTime(learner.lastActivity)}</span>
-                <span className="learner-folder-card__open">Open record <FolderOpen /></span>
+                <span><Clock3 />Last activity {formatDateTime(learner.lastActivity)}</span>
+                <span className="learner-folder-card__open">Review record <span aria-hidden="true">→</span></span>
               </span>
             </button>
           ))}
@@ -289,8 +299,9 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
       <TrainingModal
         open={Boolean(selectedLearner)}
         onClose={() => setSelectedKey('')}
-        title={selectedLearner?.name || 'Learner record'}
-        description={selectedLearner?.email || 'Training history and assessment outcomes'}
+        eyebrow="Learner intelligence"
+        title={selectedLearner ? `${selectedLearner.name} · training record` : 'Learner record'}
+        description={selectedLearner?.email || 'Progress, course history, and assessment outcomes'}
         size="large"
       >
         {selectedLearner && (
@@ -298,7 +309,7 @@ export function LearnerRecords({ progress = [], results = [], emptyMessage = 'Le
             <aside className="learner-record-profile">
               <span className="avatar learner-record-detail__avatar"><UserRound /></span>
               <div>
-                <span className="learner-record-profile__eyebrow">Training record</span>
+                <span className="learner-record-profile__eyebrow">Learner profile</span>
                 <h3>{selectedLearner.name}</h3>
                 <p>{selectedLearner.email || 'No email available'}</p>
               </div>
