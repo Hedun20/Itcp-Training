@@ -42,18 +42,23 @@ export async function seedAdmin() {
     );
   }
 
+  // Normal active administrators keep the password stored in MongoDB. A disabled
+  // administrator can still be recovered through the seed, or rotation can be
+  // requested explicitly with ADMIN_RESET_PASSWORD=true.
+  const shouldResetPassword = env.ADMIN_RESET_PASSWORD || admin.status !== 'active';
+
   admin.name = env.ADMIN_NAME;
   admin.email = normalizedEmail;
   admin.status = 'active';
 
-  if (env.ADMIN_RESET_PASSWORD) {
+  if (shouldResetPassword) {
     assertSeedPassword(env.ADMIN_PASSWORD);
     admin.passwordHash = await bcrypt.hash(env.ADMIN_PASSWORD, 12);
   }
 
   await admin.save();
   console.log(
-    env.ADMIN_RESET_PASSWORD
+    shouldResetPassword
       ? `Administrator ${normalizedEmail} already exists; profile, status and password refreshed`
       : `Administrator ${normalizedEmail} already exists; profile and status refreshed, existing password preserved`,
   );
