@@ -9,6 +9,7 @@ import './branding/theme/global.css';
 import './branding/theme/refinements.css';
 import './branding/theme/auth-recovery.css';
 import './branding/theme/learner-records.css';
+import './branding/theme/premium-controls.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

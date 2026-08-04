@@ -67,6 +67,8 @@ const envSchema = z
     // Seed-only credential. Strength is enforced by seedAdmin so stale seed values
     // never prevent the long-running API or non-credential content repair from starting.
     ADMIN_PASSWORD: z.string().optional(),
+    // Existing administrator passwords are preserved unless this explicit one-run flag is enabled.
+    ADMIN_RESET_PASSWORD: booleanFromString,
   })
   .superRefine((env, context) => {
     const credentialsSupplied = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET].filter(Boolean).length;
