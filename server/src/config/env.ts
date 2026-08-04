@@ -74,6 +74,8 @@ const envSchema = z
     // Seed-only credential. Strength is enforced by seedAdmin so stale seed values
     // never prevent the long-running API or non-credential content repair from starting.
     ADMIN_PASSWORD: z.string().optional(),
+    // Existing administrator passwords are preserved unless this explicit one-run flag is enabled.
+    ADMIN_RESET_PASSWORD: booleanFromString,
   })
   .superRefine((env, context) => {
     const credentialsSupplied = [env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET].filter(Boolean).length;
@@ -85,8 +87,9 @@ const envSchema = z
       });
     }
 
-    const smtpSupplied = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASS, env.EMAIL_FROM].filter(Boolean).length;
-    if (smtpSupplied > 0 && !(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM)) {
+    // EMAIL_FROM may be documented without enabling SMTP. Only partial credentials are invalid.
+    const smtpCredentialsSupplied = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASS].filter(Boolean).length;
+    if (smtpCredentialsSupplied > 0 && !(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['SMTP_HOST'],
