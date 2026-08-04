@@ -4,7 +4,7 @@ import { getEnv } from '../config/env';
 import { PasswordResetToken } from '../models/PasswordResetToken';
 import { RefreshToken } from '../models/RefreshToken';
 import { User } from '../models/User';
-import { sendPasswordResetEmail } from './googleMailService';
+import { sendPasswordResetEmail } from './smtpMailService';
 import { AppError } from '../utils/AppError';
 
 function tokenHash(token: string): string {

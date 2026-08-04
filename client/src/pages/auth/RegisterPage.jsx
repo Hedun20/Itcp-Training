@@ -14,6 +14,8 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({ role: 'learner', name: '', email: '', password: '', confirmPassword: '', instructorCode: '', authorization: false });
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showInstructorCode, setShowInstructorCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState('');
@@ -48,14 +50,22 @@ export function RegisterPage() {
     submittingRef.current = true;
     setSubmitting(true);
     try {
-      const user = await register({
+      const result = await register({
         name: form.name.trim(),
         email: form.email.trim(),
         password: form.password,
         role: form.role,
         ...(form.role === 'instructor' ? { instructorCode: form.instructorCode } : {}),
       });
-      navigate(user.role === 'instructor' ? '/instructor/courses' : '/dashboard', { replace: true, state: { registered: true } });
+      if (result?.verificationRequired) {
+        const verificationEmail = result.email || form.email.trim();
+        navigate(`/verify-email?email=${encodeURIComponent(verificationEmail)}`, {
+          replace: true,
+          state: { registered: true },
+        });
+        return;
+      }
+      navigate(result.role === 'instructor' ? '/instructor/courses' : '/dashboard', { replace: true, state: { registered: true } });
     } catch (requestError) {
       if (requestError.code === 'EMAIL_IN_USE') {
         setErrors((current) => ({ ...current, email: 'An account with this email already exists.' }));
@@ -63,6 +73,10 @@ export function RegisterPage() {
         setErrors((current) => ({ ...current, instructorCode: 'The instructor access code is not valid.' }));
       } else if (requestError.code === 'INSTRUCTOR_REGISTRATION_DISABLED') {
         setGeneralError('Instructor self-registration is not available right now. You can still register as a learner.');
+      } else if (requestError.code === 'EMAIL_VERIFICATION_UNAVAILABLE') {
+        setGeneralError('Email verification is temporarily unavailable. Please try again later.');
+      } else if (requestError.code === 'EMAIL_DELIVERY_FAILED') {
+        setGeneralError('We could not send the verification email. No account was created; please try again.');
       } else if (requestError.code === 'VALIDATION_ERROR' && requestError.details?.fieldErrors) {
         const fieldErrors = requestError.details.fieldErrors;
         setErrors((current) => ({
@@ -79,7 +93,7 @@ export function RegisterPage() {
   };
 
   return (
-    <AuthShell eyebrow="Join ITCP Training" title="Create your account" description="Choose how you will use the platform. Instructor access is protected by a server-verified code.">
+    <AuthShell eyebrow="Join ITCP Training" title="Create your account" description="Choose how you will use the platform. Your work email must be verified before the first sign-in.">
       {generalError && <FeedbackBanner tone="danger">{generalError}</FeedbackBanner>}
       <GoogleSignInButton />
       <div className="auth-divider"><span>or register with email</span></div>
@@ -87,12 +101,20 @@ export function RegisterPage() {
         <AccountRoleSelector value={form.role} onChange={update} error={errors.role} />
         <TrainingInput label="Full name" name="name" autoComplete="name" value={form.name} onChange={update} required minLength={2} maxLength={120} error={errors.name} placeholder="Your full name" />
         <TrainingInput label="Work email" name="email" type="email" autoComplete="email" value={form.email} onChange={update} required maxLength={254} error={errors.email} placeholder="you@company.com" />
-        {form.role === 'instructor' && <TrainingInput label="Instructor access code" name="instructorCode" type="password" inputMode="numeric" autoComplete="one-time-code" value={form.instructorCode} onChange={update} required minLength={6} maxLength={6} pattern="[0-9]{6}" error={errors.instructorCode} hint="Enter the six-digit code provided by ITCP. It is verified only by the server." placeholder="Six digits" />}
+        {form.role === 'instructor' && (
+          <div className="password-field-wrap">
+            <TrainingInput label="Instructor access code" name="instructorCode" type={showInstructorCode ? 'text' : 'password'} inputMode="numeric" autoComplete="one-time-code" value={form.instructorCode} onChange={update} required minLength={6} maxLength={6} pattern="[0-9]{6}" error={errors.instructorCode} hint="Enter the six-digit code provided by ITCP. It is verified only by the server." placeholder="Six digits" />
+            <button type="button" className="password-toggle" onClick={() => setShowInstructorCode((value) => !value)} aria-label={showInstructorCode ? 'Hide instructor code' : 'Show instructor code'}>{showInstructorCode ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+          </div>
+        )}
         <div className="password-field-wrap">
           <TrainingInput label="Password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={form.password} onChange={update} required minLength={10} maxLength={128} error={passwordError} hint="At least 10 characters with a letter and number." />
-          <button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide passwords' : 'Show passwords'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+          <button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
         </div>
-        <TrainingInput label="Confirm password" name="confirmPassword" type={showPassword ? 'text' : 'password'} autoComplete="new-password" value={form.confirmPassword} onChange={update} required minLength={10} maxLength={128} error={errors.confirmPassword || (form.confirmPassword && form.password !== form.confirmPassword ? 'Passwords do not match.' : '')} />
+        <div className="password-field-wrap">
+          <TrainingInput label="Confirm password" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} autoComplete="new-password" value={form.confirmPassword} onChange={update} required minLength={10} maxLength={128} error={errors.confirmPassword || (form.confirmPassword && form.password !== form.confirmPassword ? 'Passwords do not match.' : '')} />
+          <button type="button" className="password-toggle" onClick={() => setShowConfirmPassword((value) => !value)} aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}>{showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+        </div>
         <div className={errors.authorization ? 'check-control-wrap check-control-wrap--error' : 'check-control-wrap'}>
           <label className="check-control"><input name="authorization" type="checkbox" checked={form.authorization} onChange={update} required aria-invalid={Boolean(errors.authorization)} aria-describedby={errors.authorization ? 'registration-authorization-error' : undefined} /><span>I confirm that I am authorised to create and use this ITCP Training account.</span></label>
           {errors.authorization && <span id="registration-authorization-error" className="field-message inline-error" role="alert">{errors.authorization}</span>}

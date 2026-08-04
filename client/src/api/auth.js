@@ -12,7 +12,9 @@ export const authApi = {
     return authResult(await api.post('/auth/login', credentials, { skipRefresh: true }));
   },
   async register(details) {
-    return authResult(await api.post('/auth/register', details, { skipRefresh: true }));
+    const payload = await api.post('/auth/register', details, { skipRefresh: true });
+    if (payload?.verificationRequired) return payload;
+    return authResult(payload);
   },
   async currentUser() {
     const payload = await api.get('/auth/me');
@@ -24,6 +26,16 @@ export const authApi = {
   async googleStatus() {
     const payload = await api.get('/auth/google/status', { skipRefresh: true });
     return payload?.enabled ?? payload?.available ?? false;
+  },
+  async emailVerificationStatus() {
+    const payload = await api.get('/auth/email-verification/status', { skipRefresh: true });
+    return payload || { enabled: false, required: false };
+  },
+  async verifyEmail(token) {
+    return api.post('/auth/verify-email', { token }, { skipRefresh: true });
+  },
+  async resendVerification(email) {
+    return api.post('/auth/resend-verification', { email }, { skipRefresh: true });
   },
   async passwordResetStatus() {
     const payload = await api.get('/auth/password-reset/status', { skipRefresh: true });

@@ -18,7 +18,11 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const submittingRef = useRef(false);
 
-  const update = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const update = (event) => {
+    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+    setError('');
+  };
+
   const submit = async (event) => {
     event.preventDefault();
     if (submittingRef.current) return;
@@ -30,6 +34,13 @@ export function LoginPage() {
       const requested = location.state?.from?.pathname;
       navigate(requested || roleHomePath(user.role), { replace: true });
     } catch (requestError) {
+      if (requestError.code === 'EMAIL_NOT_VERIFIED') {
+        navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}`, {
+          replace: true,
+          state: { loginBlocked: true },
+        });
+        return;
+      }
       setError(requestError.message || 'Sign-in failed. Check your details and try again.');
     } finally {
       submittingRef.current = false;
@@ -41,13 +52,14 @@ export function LoginPage() {
     <AuthShell eyebrow="Welcome back" title="Sign in to your training" description="Continue your learning securely from where you stopped.">
       {location.state?.registered && <FeedbackBanner tone="success">Your account is ready. Welcome to ITCP Training.</FeedbackBanner>}
       {location.state?.passwordReset && <FeedbackBanner tone="success">Your password has been changed. Sign in with the new password.</FeedbackBanner>}
+      {location.state?.emailVerified && <FeedbackBanner tone="success">Your email is verified. You can now sign in.</FeedbackBanner>}
       {error && <FeedbackBanner tone="danger">{error}</FeedbackBanner>}
       <GoogleSignInButton />
       <div className="auth-divider"><span>or use email</span></div>
       <form className="auth-form" onSubmit={submit} noValidate>
         <TrainingInput label="Email address" name="email" type="email" autoComplete="email" value={form.email} onChange={update} required placeholder="you@company.com" />
         <div className="password-field-wrap">
-          <TrainingInput label="Password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={form.password} onChange={update} required minLength={8} placeholder="Your password" />
+          <TrainingInput label="Password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={form.password} onChange={update} required minLength={10} placeholder="Your password" />
           <button type="button" className="password-toggle" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
         </div>
         <div className="auth-form-options auth-form-options--end"><Link to="/forgot-password">Forgot password?</Link></div>

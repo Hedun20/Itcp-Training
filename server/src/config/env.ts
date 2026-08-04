@@ -58,9 +58,16 @@ const envSchema = z
     GOOGLE_CLIENT_ID: optionalNonEmptyString,
     GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
     GOOGLE_CALLBACK_URL: optionalUrl,
-    GOOGLE_GMAIL_REFRESH_TOKEN: optionalNonEmptyString,
-    GOOGLE_GMAIL_SENDER: optionalEmail,
-    GOOGLE_GMAIL_SENDER_NAME: z.string().trim().min(1).max(120).default('ITCP Training'),
+    SMTP_HOST: optionalNonEmptyString,
+    SMTP_PORT: z.coerce.number().int().min(1).max(65_535).default(587),
+    SMTP_SECURE: optionalBooleanFromString,
+    SMTP_USER: optionalNonEmptyString,
+    SMTP_PASS: optionalNonEmptyString,
+    SMTP_TIMEOUT_MS: z.coerce.number().int().min(1_000).max(120_000).default(15_000),
+    EMAIL_FROM: optionalEmail,
+    EMAIL_FROM_NAME: z.string().trim().min(1).max(120).default('ITCP Training'),
+    EMAIL_VERIFICATION_BYPASS: booleanFromString,
+    EMAIL_VERIFICATION_TTL_MINUTES: z.coerce.number().int().min(5).max(1_440).default(60),
     PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().min(5).max(180).default(30),
     ADMIN_NAME: z.string().min(2).optional(),
     ADMIN_EMAIL: z.string().email().optional(),
@@ -79,21 +86,17 @@ const envSchema = z
         message: 'Google OAuth requires GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET and GOOGLE_CALLBACK_URL together',
       });
     }
-    const gmailSupplied = [env.GOOGLE_GMAIL_REFRESH_TOKEN, env.GOOGLE_GMAIL_SENDER].filter(Boolean).length;
-    if (gmailSupplied > 0 && !(env.GOOGLE_GMAIL_REFRESH_TOKEN && env.GOOGLE_GMAIL_SENDER)) {
+
+    // EMAIL_FROM may be documented without enabling SMTP. Only partial credentials are invalid.
+    const smtpCredentialsSupplied = [env.SMTP_HOST, env.SMTP_USER, env.SMTP_PASS].filter(Boolean).length;
+    if (smtpCredentialsSupplied > 0 && !(env.SMTP_HOST && env.SMTP_USER && env.SMTP_PASS && env.EMAIL_FROM)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['GOOGLE_GMAIL_REFRESH_TOKEN'],
-        message: 'Gmail password recovery requires GOOGLE_GMAIL_REFRESH_TOKEN and GOOGLE_GMAIL_SENDER together',
+        path: ['SMTP_HOST'],
+        message: 'SMTP delivery requires SMTP_HOST, SMTP_USER, SMTP_PASS and EMAIL_FROM together',
       });
     }
-    if (gmailSupplied > 0 && !(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET)) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['GOOGLE_GMAIL_REFRESH_TOKEN'],
-        message: 'Gmail password recovery also requires GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET',
-      });
-    }
+
     if (env.JWT_ACCESS_SECRET === env.JWT_REFRESH_SECRET) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -123,6 +126,8 @@ export type Env = z.infer<typeof envSchema> & {
   allowedOrigins: string[];
   uploadsDirectory: string;
   googleEnabled: boolean;
+  smtpEnabled: boolean;
+  emailVerificationEnabled: boolean;
   passwordResetEmailEnabled: boolean;
 };
 
@@ -137,6 +142,13 @@ export function getEnv(): Env {
     throw new Error(`Invalid environment configuration: ${issues}`);
   }
 
+  const smtpEnabled = Boolean(
+    parsed.data.SMTP_HOST &&
+    parsed.data.SMTP_USER &&
+    parsed.data.SMTP_PASS &&
+    parsed.data.EMAIL_FROM,
+  );
+
   cachedEnv = {
     ...parsed.data,
     allowedOrigins: parsed.data.CLIENT_URL.split(',').map((origin) => origin.trim()).filter(Boolean),
@@ -146,12 +158,9 @@ export function getEnv(): Env {
     googleEnabled: Boolean(
       parsed.data.GOOGLE_CLIENT_ID && parsed.data.GOOGLE_CLIENT_SECRET && parsed.data.GOOGLE_CALLBACK_URL,
     ),
-    passwordResetEmailEnabled: Boolean(
-      parsed.data.GOOGLE_CLIENT_ID &&
-      parsed.data.GOOGLE_CLIENT_SECRET &&
-      parsed.data.GOOGLE_GMAIL_REFRESH_TOKEN &&
-      parsed.data.GOOGLE_GMAIL_SENDER,
-    ),
+    smtpEnabled,
+    emailVerificationEnabled: parsed.data.EMAIL_VERIFICATION_BYPASS || smtpEnabled,
+    passwordResetEmailEnabled: smtpEnabled,
   };
   return cachedEnv;
 }
