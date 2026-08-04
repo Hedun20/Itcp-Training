@@ -4,7 +4,16 @@ import { X } from 'lucide-react';
 import { trapTabKey } from '../../utils/focus';
 import { TrainingButton } from './TrainingButton';
 
-export function TrainingModal({ open, onClose, title, description, children, footer, size = 'medium' }) {
+export function TrainingModal({
+  open,
+  onClose,
+  title,
+  description,
+  children,
+  footer,
+  size = 'medium',
+  eyebrow = 'ITCP Training',
+}) {
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef(null);
@@ -30,22 +39,36 @@ export function TrainingModal({ open, onClose, title, description, children, foo
 
   if (!open) return null;
   return createPortal(
-    <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
+    <div
+      className="modal-backdrop"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}
+    >
       <section
         ref={dialogRef}
         className={`training-modal training-modal--${size}`}
+        data-size={size}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         tabIndex={-1}
       >
+        <span className="training-modal__ambient" aria-hidden="true" />
         <header className="modal-header">
-          <div>
+          <div className="modal-heading">
+            {eyebrow && <span className="modal-eyebrow">{eyebrow}</span>}
             <h2 id={titleId}>{title}</h2>
             {description && <p id={descriptionId}>{description}</p>}
           </div>
-          <TrainingButton variant="ghost" iconOnly onClick={onClose} aria-label="Close dialog" icon={<X size={20} />}>Close dialog</TrainingButton>
+          <TrainingButton
+            variant="ghost"
+            iconOnly
+            onClick={onClose}
+            aria-label="Close dialog"
+            icon={<X size={20} />}
+          >
+            Close dialog
+          </TrainingButton>
         </header>
         <div className="modal-body">{children}</div>
         {footer && <footer className="modal-footer">{footer}</footer>}
