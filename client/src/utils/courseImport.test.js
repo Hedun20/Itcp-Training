@@ -20,7 +20,7 @@ describe('course JSON importer', () => {
   });
 
   it('repairs common AI formatting errors without evaluating code', () => {
-    const input = `Here is the course:\n\n\`\\l`json
+    const input = `Here is the course:\n\n\`\`\`json
     {
       schemaVersion: '1.0',
       course: {
@@ -50,7 +50,7 @@ describe('course JSON importer', () => {
         },
       },
     }
-    \`\`\nDone.`;
+    \`\`\`\nDone.`;
 
     const result = parseCourseImportText(input);
 
@@ -116,6 +116,7 @@ describe('course JSON importer', () => {
     expect(result.course.assessment.questions[0].options).toHaveLength(2);
     expect(result.report.reviewRequired.some((issue) => issue.path.includes('options'))).toBe(true);
   });
+
 
   it('converts true/false questions and flags unsupported multiple-answer questions', () => {
     const result = parseCourseImportText(JSON.stringify({
