@@ -1,19 +1,62 @@
-import { ImagePlus, Trash2 } from 'lucide-react';
+import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { TrainingButton, TrainingCard, TrainingInput, TrainingSelect } from '../../branding/components';
 import { resolveMediaUrl } from '../../utils/media';
 
-export function CourseMetadataForm({ course, errors, onChange, onChooseCover }) {
+export function CourseMetadataForm({
+  course,
+  errors,
+  onChange,
+  onChooseCover,
+  onTitleChange,
+  onSlugChange,
+  onSlugBlur,
+  onRegenerateSlug,
+  slugMode = 'manual',
+}) {
   const set = (field) => (event) => onChange({ ...course, [field]: event.target.value });
+  const changeTitle = (value) => onTitleChange ? onTitleChange(value) : onChange({ ...course, title: value });
+  const changeSlug = (value) => onSlugChange ? onSlugChange(value) : onChange({ ...course, slug: value });
   return (
     <div className="editor-section-stack">
       <TrainingCard className="editor-panel">
         <div className="editor-panel__heading"><div><p className="eyebrow">Core information</p><h2>Course details</h2><p>Give learners a clear, scannable reason to start.</p></div></div>
         <div className="form-grid form-grid--three">
           <TrainingInput label="Course code" value={course.code} onChange={set('code')} required error={errors.code} minLength={2} maxLength={30} placeholder="DCT-01" />
-          <TrainingInput label="URL slug" value={course.slug} onChange={set('slug')} required error={errors.slug} minLength={2} maxLength={160} placeholder="digital-capability" />
+          <div className="course-slug-field">
+            <TrainingInput
+              label="URL slug"
+              value={course.slug}
+              onChange={(event) => changeSlug(event.target.value)}
+              onBlur={onSlugBlur}
+              required
+              error={errors.slug}
+              minLength={2}
+              maxLength={160}
+              placeholder="digital-capability"
+              hint={slugMode === 'auto' ? 'Generated automatically from the course title.' : 'Custom URL. Regenerate it from the title at any time.'}
+            />
+            <TrainingButton
+              variant="ghost"
+              size="small"
+              icon={<RefreshCw />}
+              onClick={onRegenerateSlug}
+              disabled={!course.title?.trim()}
+            >
+              Generate from title
+            </TrainingButton>
+          </div>
           <TrainingInput label="Estimated duration" value={course.estimatedDuration} onChange={set('estimatedDuration')} error={errors.estimatedDuration} maxLength={80} placeholder="45 minutes" />
         </div>
-        <TrainingInput label="Course title" value={course.title} onChange={set('title')} required error={errors.title} minLength={2} maxLength={240} placeholder="Course title" />
+        <TrainingInput
+          label="Course title"
+          value={course.title}
+          onChange={(event) => changeTitle(event.target.value)}
+          required
+          error={errors.title}
+          minLength={2}
+          maxLength={240}
+          placeholder="Course title"
+        />
         <TrainingInput label="Short description" value={course.shortDescription} onChange={set('shortDescription')} required error={errors.shortDescription} multiline rows={3} maxLength={600} hint={`${course.shortDescription?.length || 0}/600 characters`} placeholder="A concise catalog description" />
         <TrainingInput label="Full description" value={course.description} onChange={set('description')} error={errors.description} multiline rows={6} maxLength={10000} placeholder="Explain the outcomes, audience, and value of this course." />
         <div className="form-grid form-grid--three">
