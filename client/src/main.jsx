@@ -10,6 +10,7 @@ import './branding/theme/refinements.css';
 import './branding/theme/auth-recovery.css';
 import './branding/theme/learner-records.css';
 import './branding/theme/premium-controls.css';
+import './branding/theme/course-import.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
